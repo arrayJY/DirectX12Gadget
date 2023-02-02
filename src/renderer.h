@@ -2,15 +2,21 @@
 // Created by arrayJY on 2023/02/02.
 //
 
-#ifndef DX12DEMO_RENDERER_H
-#define DX12DEMO_RENDERER_H
+#pragma once
 
 #include "stdafx.h"
 
 class Renderer {
 public:
+  struct InitInfo {
+    unsigned width;
+    unsigned height;
+    HWND hwnd;
+    bool fullScreen;
+  };
+
   // function declarations
-  bool InitDirectX(); // initializes direct3d 12
+  bool InitDirectX(const InitInfo& initInfo); // initializes direct3d 12
 
   void Update(); // update the game logic
 
@@ -66,5 +72,3 @@ private:
   int rtvDescriptorSize; // size of the rtv descriptor on the device (all front
                          // and back buffers will be the same size)
 };
-
-#endif
