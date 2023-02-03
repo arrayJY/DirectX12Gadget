@@ -10,7 +10,6 @@
 #include <glfw/glfw3native.h>
 #include <stdexcept>
 
-
 int main() {
   constexpr int width = 800, height = 600;
 
@@ -27,6 +26,20 @@ int main() {
   auto hwnd = glfwGetWin32Window(window);
 
   Renderer renderer;
-  renderer.InitDirectX(Renderer::InitInfo{
-      .width = width, .height = height, .hwnd = hwnd, .fullScreen = false});
+  if (!renderer.InitDirectX(Renderer::InitInfo{.width = width,
+                                               .height = height,
+                                               .hwnd = hwnd,
+                                               .fullScreen = false})) {
+    throw std::runtime_error("Init DirectX failed.");
+  }
+
+  while (renderer.IsRunning() && !glfwWindowShouldClose(window)) {
+    renderer.Update();
+    renderer.Render();
+    glfwPollEvents();
+  }
+
+  renderer.Close();
+
+  return 0;
 }
