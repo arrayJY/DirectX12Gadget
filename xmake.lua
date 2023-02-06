@@ -2,7 +2,7 @@ set_project("DX12Demo")
 set_languages("c++20")
 
 add_rules("mode.debug", "mode.release")
-add_requires("glfw")
+add_requires("glfw", "directxtk")
 
 if is_mode("debug") then
     add_defines("DEBUG")
@@ -13,7 +13,7 @@ target("DX12Demo")
     set_kind("binary")
     add_files("src/*.cpp")
     add_syslinks("d3d12", "dxgi", "d3dcompiler")
-    add_packages("glfw")
+    add_packages("glfw", "directxtk")
     add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/shaders"):gsub("\\", "/") .. "\"" )
 
 --

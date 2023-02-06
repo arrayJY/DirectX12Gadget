@@ -5,6 +5,7 @@
 #pragma once
 
 #include "stdafx.h"
+using Microsoft::WRL::ComPtr;
 
 class Renderer {
 public:
@@ -12,96 +13,62 @@ public:
     unsigned width;
     unsigned height;
     HWND hwnd;
-    bool fullScreen;
   };
-
-  struct Vertex {
-    DirectX::XMFLOAT3 pos;
-  };
-
-
 
   // function declarations
-  bool InitDirectX(const InitInfo &initInfo); // initializes direct3d 12
+  void InitDirectX(const InitInfo &initInfo); // initializes direct3d 12
 
-  void Run();
+  void OnResize(UINT width, UINT height);
 
-  void Update(); // update the game logic
-
-  void UpdatePipeline(); // update the direct3d pipeline (update command lists)
-
-  void Render(); // execute the command list
-
-  void Cleanup(); // release com ojects and clean up memory
-
-  void WaitForPreviousFrame(); // wait until gpu is finished with command list
-
-  bool IsRunning() { return Running; }
-
-  void Close();
+  void FlushCommandQueue();
 
 private:
-  // direct3d stuff
-  static constexpr int frameBufferCount =
-      3; // number of buffers we want, 2 for double
-         // buffering, 3 for tripple buffering
+  void CreateDevice();
+  void CreateFence();
+  void CollectDescriptorSize();
+  void CollectMsaaInfo();
+  void CreateCommandObjects();
+  void CreateSwapChain(HWND hwnd, UINT width, UINT height);
+  void CreateDesciptorHeaps();
+  void CreateRenderTargetView();
+  void CreateDepthStencilBuffer(UINT width, UINT height);
+  void CreateDepthStencilView();
+  void CreateViewportAndScissorRect(UINT width, UINT height);
 
-  ID3D12Device *device; // direct3d device
+  D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
 
-  IDXGISwapChain3 *swapChain; // swapchain used to switch between render targets
+private:
+  static constexpr int swapChainBufferCount = 2;
+  int currentBackBufferIndex = 0;
 
-  ID3D12CommandQueue *commandQueue; // container for command lists
+  ComPtr<IDXGIFactory4> dxgiFactory;
+  ComPtr<ID3D12Device> device;
 
-  ID3D12DescriptorHeap *rtvDescriptorHeap; // a descriptor heap to hold
-                                           // resources like the render targets
+  ComPtr<ID3D12Fence> fence;
+  int fenceValue;
 
-  ID3D12Resource *renderTargets[frameBufferCount]; // number of render targets
-                                                   // equal to buffer count
+  bool msaaState = true;
+  UINT msaaQuality;
 
-  ID3D12CommandAllocator
-      *commandAllocator[frameBufferCount]; // we want enough allocators for each
-                                           // buffer * number of threads (we
-                                           // only have one thread)
+  ComPtr<ID3D12CommandQueue> commandQueue;
+  ComPtr<ID3D12CommandAllocator> commandAllocator;
+  ComPtr<ID3D12GraphicsCommandList> commandList;
 
-  ID3D12GraphicsCommandList
-      *commandList; // a command list we can record commands into, then execute
-                    // them to render the frame
+  ComPtr<IDXGISwapChain> swapChain;
 
-  ID3D12Fence
-      *fence[frameBufferCount]; // an object that is locked while our command
-                                // list is being executed by the gpu. We need as
-                                // many
-                                // as we have allocators (more if we want to
-                                // know when the gpu is finished with an asset)
+  ComPtr<ID3D12DescriptorHeap> rtvHeap;
+  ComPtr<ID3D12DescriptorHeap> dsvHeap;
 
-  HANDLE
-  fenceEvent; // a handle to an event when our fence is unlocked by the gpu
+  ComPtr<ID3D12Resource> swapChainBuffer[swapChainBufferCount];
+  ComPtr<ID3D12Resource> depthStencilBuffer;
 
-  UINT64 fenceValue[frameBufferCount]; // this value is incremented each frame.
-                                       // each fence will have its own value
+  D3D12_VIEWPORT viewport;
+  D3D12_RECT scissorRect;
 
-  int frameIndex; // current rtv we are on
+  DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+  DXGI_FORMAT depthStencilFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-  int rtvDescriptorSize; // size of the rtv descriptor on the device (all front
-                         // and back buffers will be the same size)
-  bool Running = true;
-
-  ID3D12PipelineState *pipelineStateObject; // pso containing a pipeline state
-
-  ID3D12RootSignature
-      *rootSignature; // root signature defines data shaders will access
-
-  D3D12_VIEWPORT
-      viewport; // area that output from rasterizer will be stretched to.
-
-  D3D12_RECT scissorRect; // the area to draw in. pixels outside that area will
-                          // not be drawn onto
-
-  ID3D12Resource *vertexBuffer; // a default buffer in GPU memory that we will
-                                // load vertex data for our triangle into
-
-  D3D12_VERTEX_BUFFER_VIEW
-      vertexBufferView; // a structure containing a pointer to the vertex data
-                        // in gpu memory the total size of the buffer, and the
-                        // size of each element (vertex)
+  UINT rtvDescriptorSize;
+  UINT dsvDescriptorSize;
+  UINT cbvUavDescriptorSize;
 };

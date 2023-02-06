@@ -11,35 +11,4 @@
 #include <stdexcept>
 
 int main() {
-  constexpr int width = 800, height = 600;
-
-  glfwInit();
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-  auto window =
-      glfwCreateWindow(width, height, "DirectX 12 Demo", nullptr, nullptr);
-
-  if (!window) {
-    throw std::runtime_error("GLFW create window failed.");
-  }
-
-  auto hwnd = glfwGetWin32Window(window);
-
-  Renderer renderer;
-  if (!renderer.InitDirectX(Renderer::InitInfo{.width = width,
-                                               .height = height,
-                                               .hwnd = hwnd,
-                                               .fullScreen = false})) {
-    throw std::runtime_error("Init DirectX failed.");
-  }
-
-  while (renderer.IsRunning() && !glfwWindowShouldClose(window)) {
-    renderer.Update();
-    renderer.Render();
-    glfwPollEvents();
-  }
-
-  renderer.Close();
-
-  return 0;
 }
