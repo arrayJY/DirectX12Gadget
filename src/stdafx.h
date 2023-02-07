@@ -24,25 +24,40 @@
     }                                                                          \
   }
 
-// Helper class for COM exceptions
-class com_exception : public std::exception {
+class DxException : public std::exception {
 public:
-  com_exception(HRESULT hr) : result(hr) {}
-
-  virtual const char *what() const override {
-    static char s_str[64] = {};
-    sprintf_s(s_str, "Failure with HRESULT of %08X",
-              static_cast<unsigned int>(result));
-    return s_str;
+  DxException() = default;
+  DxException(HRESULT hr, const std::wstring &functionName,
+              const std::wstring &filename, int lineNumber) {}
+  const char *what() const override {
+    static char s[1024] = {};
+    sprintf_s(s, "%s: %s: line %d: Error %8d \n", FileName.c_str(),
+              FunctionName.c_str(), LineNumber,
+              static_cast<unsigned int>(ErrorCode));
+    return s;
   }
 
 private:
-  HRESULT result;
+  HRESULT ErrorCode = S_OK;
+  std::wstring FunctionName;
+  std::wstring FileName;
+  int LineNumber = -1;
 };
 
-// Helper utility converts D3D API failures into exceptions.
-inline void ThrowIfFailed(HRESULT hr) {
-  if (FAILED(hr)) {
-    throw com_exception(hr);
-  }
+inline std::wstring AnsiToWString(const std::string &str) {
+  WCHAR buffer[512];
+  MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, buffer, 512);
+  return std::wstring(buffer);
 }
+
+#ifndef ThrowIfFailed
+#define ThrowIfFailed(x)                                                       \
+  {                                                                            \
+    HRESULT __hr = (x);                                                        \
+    std::wstring wfn = AnsiToWString(__FILE__);                                \
+    if (FAILED(__hr)) {                                                        \
+      throw DxException(__hr, L#x, wfn, __LINE__);                             \
+    }                                                                          \
+  }
+
+#endif // !ThrowIfFailed
