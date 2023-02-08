@@ -16,6 +16,8 @@
 #include <dxgi1_4.h>
 #include <windows.h>
 
+using Microsoft::WRL::ComPtr;
+
 #define SAFE_RELEASE(p)                                                        \
   {                                                                            \
     if ((p)) {                                                                 \

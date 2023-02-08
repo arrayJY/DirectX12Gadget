@@ -5,7 +5,6 @@
 #pragma once
 
 #include "stdafx.h"
-using Microsoft::WRL::ComPtr;
 
 class Renderer {
 public:
