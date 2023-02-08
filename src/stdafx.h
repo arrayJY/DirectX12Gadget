@@ -9,12 +9,16 @@
 #endif
 
 #include "d3dx12.h"
+#include <DirectXCollision.h>
 #include <DirectXMath.h>
 #include <d3d12.h>
 #include <d3d12sdklayers.h>
 #include <d3dcompiler.h>
 #include <dxgi1_4.h>
 #include <windows.h>
+#include <string>
+#include <vector>
+#include <unordered_map>
 
 using Microsoft::WRL::ComPtr;
 

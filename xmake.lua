@@ -1,4 +1,4 @@
-set_project("DX12Demo")
+set_project("DirectX12Gadget")
 set_languages("c++20")
 
 add_rules("mode.debug", "mode.release")

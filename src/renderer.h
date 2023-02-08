@@ -36,7 +36,7 @@ private:
 
   D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
 
-private:
+protected:
   static constexpr int swapChainBufferCount = 2;
   int currentBackBufferIndex = 0;
 
