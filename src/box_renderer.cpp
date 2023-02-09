@@ -3,16 +3,45 @@
 //
 
 #include "box_renderer.h"
-#include "dx_utils.h"
-#include "stdafx.h"
-#include "upload_buffer.h"
+#include <array>
+
+void BoxRenderer::InitDirectX(const InitInfo &initInfo) {
+  Renderer::InitDirectX(initInfo);
+
+  ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
+
+  BuildDescriptorHeaps();
+  CreateConstantBuffer();
+  CreateRootSignature();
+  CreateShadersAndInputLayout();
+  CreateBoxGeometry();
+  CreatePSO();
+
+  ThrowIfFailed(commandList->Close());
+  ID3D12CommandList *cmdsLists[] = {commandList.Get()};
+  commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+  FlushCommandQueue();
+}
+
+void BoxRenderer::BuildDescriptorHeaps() {
+  auto cbvHeapDesc = D3D12_DESCRIPTOR_HEAP_DESC{
+      .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+      .NumDescriptors = 1,
+      .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+      .NodeMask = 0,
+  };
+  ThrowIfFailed(
+      device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&cbvHeap)));
+}
 
 void BoxRenderer::CreateConstantBuffer() {
-  UploadBuffer<ConstantObject> uploadBuffer(device.Get(), 1);
-  uploadBuffer.Upload();
+  uploadBuffer =
+      std::make_unique<UploadBuffer<ConstantObject>>(device.Get(), 1);
+  uploadBuffer->Upload();
   UINT constantStructSize =
       DXUtils::CalcConstantBufferSize(sizeof(ConstantObject));
-  auto constantBufferAddress = uploadBuffer.Resource()->GetGPUVirtualAddress();
+  auto constantBufferAddress = uploadBuffer->Resource()->GetGPUVirtualAddress();
   auto constantBufferViewDesc = D3D12_CONSTANT_BUFFER_VIEW_DESC{
       .BufferLocation = constantBufferAddress,
       .SizeInBytes = constantStructSize,
@@ -45,9 +74,9 @@ void BoxRenderer::CreateRootSignature() {
 }
 
 void BoxRenderer::CreateShadersAndInputLayout() {
-  vertexShader = DXUtils::CompileShader(SHADER_DIR L"VertexShader", nullptr,
+  vertexShader = DXUtils::CompileShader(SHADER_DIR L"/Color.hlsl", nullptr,
                                         "VS", "vs_5_0");
-  pixelShader = DXUtils::CompileShader(SHADER_DIR L"PixelShader", nullptr, "PS",
+  pixelShader = DXUtils::CompileShader(SHADER_DIR L"/Color.hlsl", nullptr, "PS",
                                        "ps_5_0");
   inputLayout.push_back(D3D12_INPUT_ELEMENT_DESC{
       .SemanticName = "POSITION",
@@ -66,6 +95,59 @@ void BoxRenderer::CreateShadersAndInputLayout() {
       .AlignedByteOffset = 12,
       .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
       .InstanceDataStepRate = 0});
+}
+
+void BoxRenderer::CreateBoxGeometry() {
+  std::array<Vertex, 8> vertices = {
+      Vertex{XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(DirectX::Colors::White)},
+      Vertex{XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(DirectX::Colors::Black)},
+      Vertex{XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(DirectX::Colors::Red)},
+      Vertex{XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(DirectX::Colors::Green)},
+      Vertex{XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Blue)},
+      Vertex{XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Yellow)},
+      Vertex{XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Cyan)},
+      Vertex{XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(DirectX::Colors::Magenta)},
+  };
+
+  std::array<std::uint16_t, 36> indices = {
+      0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 4, 5, 1, 4, 1, 0,
+      3, 2, 6, 3, 6, 7, 1, 5, 6, 1, 6, 2, 4, 0, 3, 4, 3, 7,
+  };
+
+  const UINT vertexBufferByteSize = vertices.size() * sizeof(Vertex);
+  const UINT indexBufferByteSize = indices.size() * sizeof(std::uint16_t);
+
+  BoxGeometry = std::make_unique<MeshGeometry>();
+  BoxGeometry->Name = "BoxGemometry";
+
+  ThrowIfFailed(
+      D3DCreateBlob(vertexBufferByteSize, &BoxGeometry->VertexCPUBuffer));
+  CopyMemory(BoxGeometry->VertexCPUBuffer->GetBufferPointer(), vertices.data(),
+             vertexBufferByteSize);
+
+  ThrowIfFailed(
+      D3DCreateBlob(indexBufferByteSize, &BoxGeometry->IndexCPUBuffer));
+  CopyMemory(BoxGeometry->IndexCPUBuffer->GetBufferPointer(), indices.data(),
+             indexBufferByteSize);
+
+  BoxGeometry->VertexGPUBuffer = DXUtils::CreateDefaultBuffer(
+      device.Get(), commandList.Get(), vertices.data(), vertexBufferByteSize,
+      BoxGeometry->VertexBufferUploader);
+
+  BoxGeometry->IndexGPUBuffer = DXUtils::CreateDefaultBuffer(
+      device.Get(), commandList.Get(), indices.data(), indexBufferByteSize,
+      BoxGeometry->IndexBufferUploader);
+
+  BoxGeometry->VertexByteStride = sizeof(Vertex);
+  BoxGeometry->VertexBufferByteSize = vertexBufferByteSize;
+  BoxGeometry->IndexFormat = DXGI_FORMAT_R16_UINT;
+  BoxGeometry->IndexBufferByteSize = indexBufferByteSize;
+
+  BoxGeometry->DrawArgs["box"] = SubmeshGeometry{
+      .IndexCount = indices.size(),
+      .StartIndexLocation = 0,
+      .BaseVertexLocation = 0,
+  };
 }
 
 void BoxRenderer::CreatePSO() {
@@ -100,4 +182,86 @@ void BoxRenderer::CreatePSO() {
   };
   ThrowIfFailed(
       device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&PSO)))
+}
+
+void BoxRenderer::Draw(const GameTimer &timer) {
+  ThrowIfFailed(commandAllocator->Reset());
+
+  ThrowIfFailed(commandList->Reset(commandAllocator.Get(), PSO.Get()));
+
+  commandList->RSSetViewports(1, &viewport);
+  commandList->RSSetScissorRects(1, &scissorRect);
+
+  auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+      CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT,
+      D3D12_RESOURCE_STATE_RENDER_TARGET);
+  commandList->ResourceBarrier(1, &barrier);
+
+  commandList->ClearRenderTargetView(
+      CurrentBackBufferView(), DirectX::Colors::LightSteelBlue, 0, nullptr);
+  commandList->ClearDepthStencilView(
+      DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+      1.0f, 0, 0, nullptr);
+
+  auto currentBackBufferView = CurrentBackBufferView();
+  auto depthStencilView = DepthStencilView();
+  commandList->OMSetRenderTargets(1, &currentBackBufferView, true,
+                                  &depthStencilView);
+
+  ID3D12DescriptorHeap *descriptorHeaps[] = {cbvHeap.Get()};
+  commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+  commandList->SetGraphicsRootSignature(rootSignature.Get());
+
+  auto vertexBufferView = BoxGeometry->VertexBufferView();
+  commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+  auto indexBufferView = BoxGeometry->IndexBufferView();
+  commandList->IASetIndexBuffer(&indexBufferView);
+
+  commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  commandList->SetGraphicsRootDescriptorTable(
+      0, cbvHeap->GetGPUDescriptorHandleForHeapStart());
+
+  commandList->DrawIndexedInstanced(BoxGeometry->DrawArgs["box"].IndexCount, 1,
+                                    0, 0, 0);
+
+  auto barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(
+      CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+      D3D12_RESOURCE_STATE_PRESENT);
+  commandList->ResourceBarrier(1, &barrier2);
+
+  ThrowIfFailed(commandList->Close());
+
+  ID3D12CommandList *cmdsLists[] = {commandList.Get()};
+  commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+  ThrowIfFailed(swapChain->Present(0, 0));
+  currentBackBufferIndex = (currentBackBufferIndex + 1) % swapChainBufferCount;
+
+  FlushCommandQueue();
+}
+
+void BoxRenderer::Update(const GameTimer &timer) {
+  // Convert Spherical to Cartesian coordinates.
+  float x = radius * sinf(phi) * cosf(theta);
+  float z = radius * sinf(phi) * sinf(theta);
+  float y = radius * cosf(phi);
+
+  // Build the view matrix.
+  XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
+  XMVECTOR target = XMVectorZero();
+  XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+  XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+  XMStoreFloat4x4(&viewMatrix, view);
+
+  XMMATRIX world = XMLoadFloat4x4(&worldMatrix);
+  XMMATRIX proj = XMLoadFloat4x4(&projectionMatrix);
+  XMMATRIX worldViewProj = world * view * proj;
+
+  // Update the constant buffer with the latest worldViewProj matrix.
+  ConstantObject objConstants;
+  XMStoreFloat4x4(&objConstants.MVP, XMMatrixTranspose(worldViewProj));
+  uploadBuffer->CopyData(0, objConstants);
 }

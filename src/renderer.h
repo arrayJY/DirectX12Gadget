@@ -5,6 +5,7 @@
 #pragma once
 
 #include "stdafx.h"
+#include "timer.h"
 
 class Renderer {
 public:
@@ -14,14 +15,16 @@ public:
     HWND hwnd;
   };
 
-  // function declarations
-  void InitDirectX(const InitInfo &initInfo); // initializes direct3d 12
+  virtual void InitDirectX(const InitInfo &initInfo);
 
   void OnResize(UINT width, UINT height);
 
   void FlushCommandQueue();
 
-private:
+  void DrawFrame();
+
+
+protected:
   void CreateDevice();
   void CreateFence();
   void CollectDescriptorSize();
@@ -34,7 +37,12 @@ private:
   void CreateDepthStencilView();
   void CreateViewportAndScissorRect(UINT width, UINT height);
 
+  ID3D12Resource* CurrentBackBuffer() const;
+  D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
   D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
+
+  virtual void Draw(const GameTimer& timer) = 0;
+  virtual void Update(const GameTimer& timer) = 0;
 
 protected:
   static constexpr int swapChainBufferCount = 2;
@@ -46,7 +54,7 @@ protected:
   ComPtr<ID3D12Fence> fence;
   int fenceValue;
 
-  bool msaaState = true;
+  bool msaaState = false;
   UINT msaaQuality;
 
   ComPtr<ID3D12CommandQueue> commandQueue;
@@ -65,9 +73,11 @@ protected:
   D3D12_RECT scissorRect;
 
   DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-  DXGI_FORMAT depthStencilFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+  DXGI_FORMAT depthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
   UINT rtvDescriptorSize;
   UINT dsvDescriptorSize;
   UINT cbvUavDescriptorSize;
+
+  GameTimer timer;
 };

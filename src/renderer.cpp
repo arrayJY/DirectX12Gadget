@@ -24,7 +24,7 @@ void Renderer::InitDirectX(const InitInfo &initInfo) {
   CreateCommandObjects();
   CreateSwapChain(initInfo.hwnd, initInfo.width, initInfo.height);
   CreateDesciptorHeaps();
-  OnResize(initInfo.width, initInfo.height);
+  // OnResize(initInfo.width, initInfo.height);
 }
 
 void Renderer::OnResize(UINT width, UINT height) {
@@ -33,20 +33,26 @@ void Renderer::OnResize(UINT width, UINT height) {
   assert(commandAllocator);
 
   FlushCommandQueue();
-  commandList->Reset(commandAllocator.Get(), nullptr);
+  ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
 
   for (auto i = 0; i < swapChainBufferCount; i++) {
     swapChainBuffer[i].Reset();
   }
 
   depthStencilBuffer.Reset();
-  swapChain->ResizeBuffers(swapChainBufferCount, width, height,
-                           backBufferFormat,
-                           DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
+  ThrowIfFailed(swapChain->ResizeBuffers(
+      swapChainBufferCount, width, height, backBufferFormat,
+      DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
   currentBackBufferIndex = 0;
   CreateRenderTargetView();
   CreateDepthStencilBuffer(width, height);
   CreateDepthStencilView();
+
+  ThrowIfFailed(commandList->Close());
+  ID3D12CommandList *cmdsLists[] = {commandList.Get()};
+  commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+  	FlushCommandQueue();
+
   CreateViewportAndScissorRect(width, height);
 }
 
@@ -63,6 +69,12 @@ void Renderer::FlushCommandQueue() {
     WaitForSingleObject(eventHandle, INFINITE);
     CloseHandle(eventHandle);
   }
+}
+
+void Renderer::DrawFrame() {
+  timer.Tick();
+  Update(timer);
+  Draw(timer);
 }
 
 void Renderer::CreateDevice() {
@@ -245,6 +257,16 @@ void Renderer::CreateViewportAndScissorRect(UINT width, UINT height) {
       .right = static_cast<long>(width),
       .bottom = static_cast<long>(height),
   };
+}
+
+ID3D12Resource *Renderer::CurrentBackBuffer() const {
+  return swapChainBuffer[currentBackBufferIndex].Get();
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Renderer::CurrentBackBufferView() const {
+  return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+      rtvHeap->GetCPUDescriptorHandleForHeapStart(), currentBackBufferIndex,
+      rtvDescriptorSize);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE Renderer::DepthStencilView() const {

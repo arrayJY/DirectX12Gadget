@@ -14,4 +14,9 @@ public:
         0.0f, 0.0f, 0.0f, 1.0f,
     };
   }
+
+  static constexpr auto PI = 3.1415926;
+
+
+
 };

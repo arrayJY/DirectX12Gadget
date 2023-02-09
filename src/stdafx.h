@@ -10,17 +10,28 @@
 
 #include "d3dx12.h"
 #include <DirectXCollision.h>
+#include <DirectXColors.h>
 #include <DirectXMath.h>
 #include <d3d12.h>
 #include <d3d12sdklayers.h>
 #include <d3dcompiler.h>
 #include <dxgi1_4.h>
-#include <windows.h>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
+#include <windows.h>
 
+
+using DirectX::XMFLOAT3;
+using DirectX::XMFLOAT4;
 using Microsoft::WRL::ComPtr;
+using DirectX::XMFLOAT4X4;
+using DirectX::XMMATRIX;
+using DirectX::XMMatrixLookAtLH;
+using DirectX::XMVECTOR;
+using DirectX::XMVectorSet;
+using DirectX::XMVectorZero;
+using DirectX::XMStoreFloat4x4;
 
 #define SAFE_RELEASE(p)                                                        \
   {                                                                            \
