@@ -43,7 +43,7 @@ DXUtils::CreateDefaultBuffer(ID3D12Device *device,
       CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
   auto defaultBufferResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
   auto uploadBufferHeapProperties =
-      CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+      CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
   auto uploadBufferResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
 
   ThrowIfFailed(device->CreateCommittedResource(
@@ -66,7 +66,7 @@ DXUtils::CreateDefaultBuffer(ID3D12Device *device,
       D3D12_RESOURCE_STATE_COPY_DEST);
   commandList->ResourceBarrier(1, &barrier);
 
-  UpdateSubresources<1>(commandList, defaultBuffer.Get(), uploadBuffer.Get(), 0,
+  UpdateSubresources<1>(commandList, defaultBuffer.Get(), uploadBuffer.Get(), 1,
                         0, 1, &subResourceData);
 
   auto barrierChanged = CD3DX12_RESOURCE_BARRIER::Transition(
