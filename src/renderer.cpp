@@ -8,6 +8,15 @@
 #include <d3d12.h>
 #include <stdexcept>
 
+Renderer* Renderer::renderer = nullptr;
+Renderer::Renderer() { renderer = this; }
+
+Renderer *Renderer::GetRenderer() { return renderer; }
+
+void Renderer::OnResizeFrame(struct GLFWwindow *window, int width, int height) {
+  GetRenderer()->OnResize(width, height);
+}
+
 void Renderer::InitDirectX(const InitInfo &initInfo) {
 #if defined(DEBUG)
   {
@@ -183,10 +192,10 @@ void Renderer::CreateDesciptorHeaps() {
       .NodeMask = 0,
   };
 
-  ThrowIfFailed(device->CreateDescriptorHeap(
-      &rtvHeapDesc, IID_PPV_ARGS(&rtvHeap)));
-  ThrowIfFailed(device->CreateDescriptorHeap(
-      &dsvHeapDesc, IID_PPV_ARGS(&dsvHeap)));
+  ThrowIfFailed(
+      device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap)));
+  ThrowIfFailed(
+      device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsvHeap)));
 }
 
 void Renderer::CreateRenderTargetView() {

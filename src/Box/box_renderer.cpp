@@ -74,9 +74,9 @@ void BoxRenderer::CreateRootSignature() {
 }
 
 void BoxRenderer::CreateShadersAndInputLayout() {
-  vertexShader = DXUtils::CompileShader(SHADER_DIR L"/Color.hlsl", nullptr,
+  vertexShader = DXUtils::CompileShader(SHADER_DIR L"/Box.hlsl", nullptr,
                                         "VS", "vs_5_0");
-  pixelShader = DXUtils::CompileShader(SHADER_DIR L"/Color.hlsl", nullptr, "PS",
+  pixelShader = DXUtils::CompileShader(SHADER_DIR L"/Box.hlsl", nullptr, "PS",
                                        "ps_5_0");
   inputLayout.push_back(D3D12_INPUT_ELEMENT_DESC{
       .SemanticName = "POSITION",

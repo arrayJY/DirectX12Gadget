@@ -3,11 +3,11 @@
 //
 
 #pragma once
-#include "dx_utils.h"
-#include "math_helper.h"
-#include "renderer.h"
-#include "stdafx.h"
-#include "upload_buffer.h"
+#include "../dx_utils.h"
+#include "../math_helper.h"
+#include "../renderer.h"
+#include "../stdafx.h"
+#include "../upload_buffer.h"
 
 struct Vertex {
   DirectX::XMFLOAT3 Pos;
@@ -20,6 +20,8 @@ struct ConstantObject {
 
 class BoxRenderer : public Renderer {
 public:
+  BoxRenderer() : Renderer() { renderer = this; }
+
   void InitDirectX(const InitInfo &initInfo) override;
 
   void BuildDescriptorHeaps();

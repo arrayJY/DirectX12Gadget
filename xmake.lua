@@ -8,13 +8,14 @@ if is_mode("debug") then
     add_defines("DEBUG")
 end
 
+add_files("src/*.cpp")
+add_syslinks("d3d12", "dxgi", "d3dcompiler")
+add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/shaders"):gsub("\\", "/") .. "\"" )
+add_packages("glfw", "directxtk")
 
-target("DX12Demo")
+target("Box")
     set_kind("binary")
-    add_files("src/*.cpp")
-    add_syslinks("d3d12", "dxgi", "d3dcompiler")
-    add_packages("glfw", "directxtk")
-    add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/shaders"):gsub("\\", "/") .. "\"" )
+    add_files("src/Box/*.cpp")
 
 --
 -- If you want to known more usage about xmake, please see https://xmake.io

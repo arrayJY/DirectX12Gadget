@@ -14,6 +14,9 @@ public:
     unsigned height;
     HWND hwnd;
   };
+  Renderer(); 
+  static Renderer* GetRenderer();
+  static void OnResizeFrame(struct GLFWwindow* window, int width, int height);
 
   virtual void InitDirectX(const InitInfo &initInfo);
 
@@ -22,7 +25,6 @@ public:
   void FlushCommandQueue();
 
   void DrawFrame();
-
 
 protected:
   void CreateDevice();
@@ -37,14 +39,15 @@ protected:
   void CreateDepthStencilView();
   void CreateViewportAndScissorRect(UINT width, UINT height);
 
-  ID3D12Resource* CurrentBackBuffer() const;
+  ID3D12Resource *CurrentBackBuffer() const;
   D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
   D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
 
-  virtual void Draw(const GameTimer& timer) = 0;
-  virtual void Update(const GameTimer& timer) = 0;
+  virtual void Draw(const GameTimer &timer) = 0;
+  virtual void Update(const GameTimer &timer) = 0;
 
 protected:
+  static Renderer *renderer;
   static constexpr int swapChainBufferCount = 2;
   int currentBackBufferIndex = 0;
 

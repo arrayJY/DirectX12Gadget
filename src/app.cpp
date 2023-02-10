@@ -1,22 +1,16 @@
 //
-// Created by arrayJY on 2023/02/02.
+// Created by arrayJY on 2023/02/10.
 //
 
-#include "stdafx.h"
+#include "app.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
-#include "box_renderer.h"
+#include "renderer.h"
 #include <glfw/glfw3.h>
 #include <glfw/glfw3native.h>
 #include <stdexcept>
 
-static BoxRenderer renderer;
-static void OnResizeFrame(GLFWwindow *window, int width, int height) {
-  renderer.OnResize(width, height);
-}
-
-int main() {
-  constexpr auto width = 800, height = 600;
+void App::MainLoop(Renderer *renderer, unsigned width, unsigned height) {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
@@ -25,7 +19,7 @@ int main() {
   if (!window) {
     throw std::runtime_error("Creat window error");
   }
-  glfwSetFramebufferSizeCallback(window, OnResizeFrame);
+  glfwSetFramebufferSizeCallback(window, Renderer::OnResizeFrame);
 
   auto process_keystrokes_input = [](GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -34,15 +28,13 @@ int main() {
 
   auto hwnd = glfwGetWin32Window(window);
 
-  renderer.InitDirectX(
+  renderer->InitDirectX(
       Renderer::InitInfo{.width = width, .height = height, .hwnd = hwnd});
 
   while (!glfwWindowShouldClose(window)) {
     process_keystrokes_input(window);
-    renderer.DrawFrame();
+    renderer->DrawFrame();
     glfwPollEvents();
   }
   glfwTerminate();
-
-  return 0;
 }
