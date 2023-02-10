@@ -17,7 +17,7 @@ public:
 
   virtual void InitDirectX(const InitInfo &initInfo);
 
-  void OnResize(UINT width, UINT height);
+  virtual void OnResize(UINT width, UINT height);
 
   void FlushCommandQueue();
 

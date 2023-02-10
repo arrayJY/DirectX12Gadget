@@ -24,7 +24,6 @@ void Renderer::InitDirectX(const InitInfo &initInfo) {
   CreateCommandObjects();
   CreateSwapChain(initInfo.hwnd, initInfo.width, initInfo.height);
   CreateDesciptorHeaps();
-  // OnResize(initInfo.width, initInfo.height);
 }
 
 void Renderer::OnResize(UINT width, UINT height) {
@@ -51,7 +50,7 @@ void Renderer::OnResize(UINT width, UINT height) {
   ThrowIfFailed(commandList->Close());
   ID3D12CommandList *cmdsLists[] = {commandList.Get()};
   commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-  	FlushCommandQueue();
+  FlushCommandQueue();
 
   CreateViewportAndScissorRect(width, height);
 }
@@ -185,9 +184,9 @@ void Renderer::CreateDesciptorHeaps() {
   };
 
   ThrowIfFailed(device->CreateDescriptorHeap(
-      &rtvHeapDesc, IID_PPV_ARGS(rtvHeap.GetAddressOf())));
+      &rtvHeapDesc, IID_PPV_ARGS(&rtvHeap)));
   ThrowIfFailed(device->CreateDescriptorHeap(
-      &dsvHeapDesc, IID_PPV_ARGS(dsvHeap.GetAddressOf())));
+      &dsvHeapDesc, IID_PPV_ARGS(&dsvHeap)));
 }
 
 void Renderer::CreateRenderTargetView() {
@@ -209,7 +208,7 @@ void Renderer::CreateDepthStencilBuffer(UINT width, UINT height) {
                           .Height = height,
                           .DepthOrArraySize = 1,
                           .MipLevels = 1,
-                          .Format = depthStencilFormat,
+                          .Format = DXGI_FORMAT_R24G8_TYPELESS,
                           .SampleDesc =
                               DXGI_SAMPLE_DESC{
                                   .Count = msaaState ? 4U : 1U,
@@ -232,8 +231,14 @@ void Renderer::CreateDepthStencilBuffer(UINT width, UINT height) {
 }
 
 void Renderer::CreateDepthStencilView() {
+  auto dsvDesc = D3D12_DEPTH_STENCIL_VIEW_DESC{
+      .Format = depthStencilFormat,
+      .ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D,
+      .Flags = D3D12_DSV_FLAG_NONE,
+      .Texture2D = D3D12_TEX2D_DSV{.MipSlice = 0},
+  };
 
-  device->CreateDepthStencilView(depthStencilBuffer.Get(), nullptr,
+  device->CreateDepthStencilView(depthStencilBuffer.Get(), &dsvDesc,
                                  DepthStencilView());
   auto resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
       depthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON,

@@ -66,7 +66,7 @@ DXUtils::CreateDefaultBuffer(ID3D12Device *device,
       D3D12_RESOURCE_STATE_COPY_DEST);
   commandList->ResourceBarrier(1, &barrier);
 
-  UpdateSubresources<1>(commandList, defaultBuffer.Get(), uploadBuffer.Get(), 1,
+  UpdateSubresources<1>(commandList, defaultBuffer.Get(), uploadBuffer.Get(), 0,
                         0, 1, &subResourceData);
 
   auto barrierChanged = CD3DX12_RESOURCE_BARRIER::Transition(

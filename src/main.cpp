@@ -21,7 +21,7 @@ int main() {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
   auto window =
-      glfwCreateWindow(width, height, "DirectX12Gaget", nullptr, nullptr);
+      glfwCreateWindow(width, height, "DirectX12Gadget", nullptr, nullptr);
   if (!window) {
     throw std::runtime_error("Creat window error");
   }
@@ -36,8 +36,6 @@ int main() {
 
   renderer.InitDirectX(
       Renderer::InitInfo{.width = width, .height = height, .hwnd = hwnd});
-
-  OnResizeFrame(window, width, height);
 
   while (!glfwWindowShouldClose(window)) {
     process_keystrokes_input(window);

@@ -7,6 +7,7 @@
 
 void BoxRenderer::InitDirectX(const InitInfo &initInfo) {
   Renderer::InitDirectX(initInfo);
+  OnResize(initInfo.width, initInfo.height);
 
   ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
 
@@ -38,7 +39,6 @@ void BoxRenderer::BuildDescriptorHeaps() {
 void BoxRenderer::CreateConstantBuffer() {
   uploadBuffer =
       std::make_unique<UploadBuffer<ConstantObject>>(device.Get(), 1);
-  uploadBuffer->Upload();
   UINT constantStructSize =
       DXUtils::CalcConstantBufferSize(sizeof(ConstantObject));
   auto constantBufferAddress = uploadBuffer->Resource()->GetGPUVirtualAddress();
@@ -264,4 +264,11 @@ void BoxRenderer::Update(const GameTimer &timer) {
   ConstantObject objConstants;
   XMStoreFloat4x4(&objConstants.MVP, XMMatrixTranspose(worldViewProj));
   uploadBuffer->CopyData(0, objConstants);
+}
+
+void BoxRenderer::OnResize(UINT width, UINT height) {
+  Renderer::OnResize(width, height);
+  XMMATRIX P = DirectX::XMMatrixPerspectiveFovLH(
+      0.25f * MathHelper::PI, (float)width / height, 1.0f, 1000.0f);
+  XMStoreFloat4x4(&projectionMatrix, P);
 }

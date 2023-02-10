@@ -31,6 +31,7 @@ public:
 
   void Draw(const GameTimer &timer) override;
   void Update(const GameTimer &timer) override;
+  void OnResize(UINT width, UINT height) override;
 
 private:
   ComPtr<ID3D12DescriptorHeap> cbvHeap = nullptr;
