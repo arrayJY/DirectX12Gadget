@@ -8,7 +8,7 @@
 #include <d3d12.h>
 #include <stdexcept>
 
-Renderer* Renderer::renderer = nullptr;
+Renderer *Renderer::renderer = nullptr;
 Renderer::Renderer() { renderer = this; }
 
 Renderer *Renderer::GetRenderer() { return renderer; }
@@ -69,13 +69,7 @@ void Renderer::FlushCommandQueue() {
   ThrowIfFailed(commandQueue->Signal(fence.Get(), fenceValue));
 
   if (fence->GetCompletedValue() < fenceValue) {
-    HANDLE eventHandle =
-        CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
-
-    ThrowIfFailed(fence->SetEventOnCompletion(fenceValue, eventHandle));
-
-    WaitForSingleObject(eventHandle, INFINITE);
-    CloseHandle(eventHandle);
+    WaitForFence(fenceValue);
   }
 }
 
@@ -271,6 +265,13 @@ void Renderer::CreateViewportAndScissorRect(UINT width, UINT height) {
       .right = static_cast<long>(width),
       .bottom = static_cast<long>(height),
   };
+}
+
+void Renderer::WaitForFence(UINT64 value) {
+  auto eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
+  ThrowIfFailed(fence->SetEventOnCompletion(value, eventHandle));
+  WaitForSingleObject(eventHandle, INFINITE);
+  CloseHandle(eventHandle);
 }
 
 ID3D12Resource *Renderer::CurrentBackBuffer() const {

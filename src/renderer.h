@@ -38,6 +38,7 @@ protected:
   void CreateDepthStencilBuffer(UINT width, UINT height);
   void CreateDepthStencilView();
   void CreateViewportAndScissorRect(UINT width, UINT height);
+  void WaitForFence(UINT64 value);
 
   ID3D12Resource *CurrentBackBuffer() const;
   D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
