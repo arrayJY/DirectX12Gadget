@@ -7,13 +7,12 @@
 #include "../dx_utils.h"
 #include "../math_helper.h"
 #include "../stdafx.h"
-#include "pbr_renderer.h"
 
-
+static const int FrameResourceCount = 3;
 struct RenderItem {
   DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
 
-  int NumberFramesDirty = PBRRenderer::GetFrameResourceCount();
+  int NumberFramesDirty = FrameResourceCount;
   UINT ObjectCBIndex = -1;
 
   MeshGeometry *Geometry = nullptr;

@@ -7,6 +7,7 @@
 #include "../renderer.h"
 #include "../stdafx.h"
 #include "frame_resource.h"
+#include "render_item.h"
 
 struct RenderItem;
 
@@ -33,14 +34,13 @@ private:
   void UpdateMainPassConstantsBuffer(const GameTimer &timer);
 
 private:
-  static const int FrameResourceCount = 1;
+  static const int FrameResourceCount = 3;
   std::vector<std::unique_ptr<FrameResource>> FrameResources;
   FrameResource *CurrentFrameResource;
   int CurrentFrameResourceIndex = 0;
 
   std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
   std::vector<RenderItem *> OpaqueRenderItems;
-
 
   PassConstants MainPassConstants;
   UINT PassCbvOffset = 0U;
