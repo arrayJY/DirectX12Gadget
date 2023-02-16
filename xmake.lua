@@ -10,12 +10,17 @@ end
 
 add_files("src/*.cpp")
 add_syslinks("d3d12", "dxgi", "d3dcompiler")
-add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/shaders"):gsub("\\", "/") .. "\"" )
 add_packages("glfw", "directxtk")
 
 target("Box")
     set_kind("binary")
     add_files("src/Box/*.cpp")
+    add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/Box/shaders"):gsub("\\", "/") .. "\"" )
+
+target("PBR")
+    set_kind("binary")
+    add_files("src/PBR/*.cpp")
+    add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/PBR/shaders"):gsub("\\", "/") .. "\"" )
 
 --
 -- If you want to known more usage about xmake, please see https://xmake.io

@@ -84,4 +84,6 @@ protected:
   UINT cbvUavDescriptorSize;
 
   GameTimer timer;
+
+  UINT Width, Height;
 };

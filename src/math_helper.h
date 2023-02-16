@@ -1,6 +1,7 @@
 //
 // Created by arrayJY on 2023/02/09.
 //
+#pragma once
 
 #include "stdafx.h"
 

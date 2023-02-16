@@ -33,12 +33,14 @@ void Renderer::InitDirectX(const InitInfo &initInfo) {
   CreateCommandObjects();
   CreateSwapChain(initInfo.hwnd, initInfo.width, initInfo.height);
   CreateDesciptorHeaps();
+  OnResize(initInfo.width, initInfo.height);
 }
 
 void Renderer::OnResize(UINT width, UINT height) {
   assert(device);
   assert(swapChain);
   assert(commandAllocator);
+  Width = width, Height = height;
 
   FlushCommandQueue();
   ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
