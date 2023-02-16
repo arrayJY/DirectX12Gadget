@@ -4,12 +4,29 @@
 
 #include "pbr_renderer.h"
 #include "geometry_generator.h"
+#include "render_item.h"
+
 using namespace DirectX;
 
 void PBRRenderer::InitDirectX(const InitInfo &initInfo) {
   Renderer::InitDirectX(initInfo);
 
   ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
+
+  CreateRootSignature();
+  CreateShaderAndInputLayout();
+  CreateShapeGeometry();
+  CreateRenderItems();
+  CreateFrameResource();
+  CreateDescriptorHeaps();
+  CreateConstantBufferView();
+  CreatePSOs();
+
+  ThrowIfFailed(commandList->Close());
+  ID3D12CommandList *cmdsLists[] = {commandList.Get()};
+  commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+  FlushCommandQueue();
 }
 
 void PBRRenderer::Update(const GameTimer &timer) {
@@ -205,15 +222,210 @@ void PBRRenderer::CreateShapeGeometry() {
   Geometries[geo->Name] = std::move(geo);
 }
 
-void PBRRenderer::CreateRenderItems() {}
+void PBRRenderer::CreateRenderItems() {
+  auto BoxItem = std::make_unique<RenderItem>();
+  XMStoreFloat4x4(&BoxItem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) *
+                                       XMMatrixTranslation(0.0f, 0.5f, 0.0f));
+  auto boxRitem = std::make_unique<RenderItem>();
+  XMStoreFloat4x4(&boxRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) *
+                                        XMMatrixTranslation(0.0f, 0.5f, 0.0f));
+  boxRitem->ObjectCBIndex = 0;
+  boxRitem->Geometry = Geometries["shapeGeo"].get();
+  boxRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+  boxRitem->IndexCount = boxRitem->Geometry->DrawArgs["box"].IndexCount;
+  boxRitem->StartIndexLocation =
+      boxRitem->Geometry->DrawArgs["box"].StartIndexLocation;
+  boxRitem->BaseVertexLocation =
+      boxRitem->Geometry->DrawArgs["box"].BaseVertexLocation;
+  AllRenderItems.push_back(std::move(boxRitem));
 
-void PBRRenderer::CreateFrameResource() {}
+  auto gridRitem = std::make_unique<RenderItem>();
+  gridRitem->World = MathHelper::Identity4x4();
+  gridRitem->ObjectCBIndex = 1;
+  gridRitem->Geometry = Geometries["shapeGeo"].get();
+  gridRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+  gridRitem->IndexCount = gridRitem->Geometry->DrawArgs["grid"].IndexCount;
+  gridRitem->StartIndexLocation =
+      gridRitem->Geometry->DrawArgs["grid"].StartIndexLocation;
+  gridRitem->BaseVertexLocation =
+      gridRitem->Geometry->DrawArgs["grid"].BaseVertexLocation;
+  AllRenderItems.push_back(std::move(gridRitem));
 
-void PBRRenderer::CreateDescriptorHeaps() {}
+  UINT ObjectCBIndex = 2;
+  for (int i = 0; i < 5; ++i) {
+    auto leftCylRitem = std::make_unique<RenderItem>();
+    auto rightCylRitem = std::make_unique<RenderItem>();
+    auto leftSphereRitem = std::make_unique<RenderItem>();
+    auto rightSphereRitem = std::make_unique<RenderItem>();
 
-void PBRRenderer::CreateConstantBufferView() {}
+    XMMATRIX leftCylWorld = XMMatrixTranslation(-5.0f, 1.5f, -10.0f + i * 5.0f);
+    XMMATRIX rightCylWorld =
+        XMMatrixTranslation(+5.0f, 1.5f, -10.0f + i * 5.0f);
 
-void PBRRenderer::CreatePSOs() {}
+    XMMATRIX leftSphereWorld =
+        XMMatrixTranslation(-5.0f, 3.5f, -10.0f + i * 5.0f);
+    XMMATRIX rightSphereWorld =
+        XMMatrixTranslation(+5.0f, 3.5f, -10.0f + i * 5.0f);
+
+    XMStoreFloat4x4(&leftCylRitem->World, rightCylWorld);
+    leftCylRitem->ObjectCBIndex = ObjectCBIndex++;
+    leftCylRitem->Geometry = Geometries["shapeGeo"].get();
+    leftCylRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    leftCylRitem->IndexCount =
+        leftCylRitem->Geometry->DrawArgs["cylinder"].IndexCount;
+    leftCylRitem->StartIndexLocation =
+        leftCylRitem->Geometry->DrawArgs["cylinder"].StartIndexLocation;
+    leftCylRitem->BaseVertexLocation =
+        leftCylRitem->Geometry->DrawArgs["cylinder"].BaseVertexLocation;
+
+    XMStoreFloat4x4(&rightCylRitem->World, leftCylWorld);
+    rightCylRitem->ObjectCBIndex = ObjectCBIndex++;
+    rightCylRitem->Geometry = Geometries["shapeGeo"].get();
+    rightCylRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    rightCylRitem->IndexCount =
+        rightCylRitem->Geometry->DrawArgs["cylinder"].IndexCount;
+    rightCylRitem->StartIndexLocation =
+        rightCylRitem->Geometry->DrawArgs["cylinder"].StartIndexLocation;
+    rightCylRitem->BaseVertexLocation =
+        rightCylRitem->Geometry->DrawArgs["cylinder"].BaseVertexLocation;
+
+    XMStoreFloat4x4(&leftSphereRitem->World, leftSphereWorld);
+    leftSphereRitem->ObjectCBIndex = ObjectCBIndex++;
+    leftSphereRitem->Geometry = Geometries["shapeGeo"].get();
+    leftSphereRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    leftSphereRitem->IndexCount =
+        leftSphereRitem->Geometry->DrawArgs["sphere"].IndexCount;
+    leftSphereRitem->StartIndexLocation =
+        leftSphereRitem->Geometry->DrawArgs["sphere"].StartIndexLocation;
+    leftSphereRitem->BaseVertexLocation =
+        leftSphereRitem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
+
+    XMStoreFloat4x4(&rightSphereRitem->World, rightSphereWorld);
+    rightSphereRitem->ObjectCBIndex = ObjectCBIndex++;
+    rightSphereRitem->Geometry = Geometries["shapeGeo"].get();
+    rightSphereRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    rightSphereRitem->IndexCount =
+        rightSphereRitem->Geometry->DrawArgs["sphere"].IndexCount;
+    rightSphereRitem->StartIndexLocation =
+        rightSphereRitem->Geometry->DrawArgs["sphere"].StartIndexLocation;
+    rightSphereRitem->BaseVertexLocation =
+        rightSphereRitem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
+
+    AllRenderItems.push_back(std::move(leftCylRitem));
+    AllRenderItems.push_back(std::move(rightCylRitem));
+    AllRenderItems.push_back(std::move(leftSphereRitem));
+    AllRenderItems.push_back(std::move(rightSphereRitem));
+  }
+
+  // All the render items are opaque.
+  for (auto &i : AllRenderItems) {
+    OpaqueRenderItems.push_back(i.get());
+  }
+}
+
+void PBRRenderer::CreateFrameResource() {
+  FrameResources.reserve(FrameResourceCount);
+  for (auto i = 0; i < FrameResourceCount; i++) {
+    FrameResources.push_back(std::make_unique<FrameResource>(
+        device.Get(), 1, AllRenderItems.size()));
+  }
+}
+
+void PBRRenderer::CreateDescriptorHeaps() {
+  auto objCount = OpaqueRenderItems.size();
+  UINT descriptorCount = (objCount + 1) * FrameResourceCount;
+  PassCbvOffset = objCount * FrameResourceCount;
+
+  D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc{
+      .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+      .NumDescriptors = descriptorCount,
+      .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+      .NodeMask = 0,
+  };
+  ThrowIfFailed(
+      device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&cbvHeap)))
+}
+
+void PBRRenderer::CreateConstantBufferView() {
+  UINT objCBByteSize = DXUtils::CalcConstantBufferSize(sizeof(ObjectConstants));
+  UINT objCount = OpaqueRenderItems.size();
+
+  for (auto frameIndex = 0; frameIndex < FrameResourceCount; frameIndex++) {
+    auto objectCB =
+        FrameResources[frameIndex]->ObjectConstantsBuffer->Resource();
+    for (auto i = 0U; i < objCount; i++) {
+      auto cbAddress = objectCB->GetGPUVirtualAddress();
+      cbAddress += i * objCBByteSize;
+      auto heapIndex = frameIndex * objCount + i;
+      auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
+          cbvHeap->GetCPUDescriptorHandleForHeapStart());
+      handle.Offset(heapIndex, cbvUavDescriptorSize);
+
+      D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{
+          .BufferLocation = cbAddress,
+          .SizeInBytes = objCBByteSize,
+      };
+      device->CreateConstantBufferView(&cbvDesc, handle);
+    }
+  }
+
+  UINT passCBByteSize = DXUtils::CalcConstantBufferSize(sizeof(PassConstants));
+  for (auto framIndex = 0; framIndex < FrameResourceCount; framIndex++) {
+    auto passCB = FrameResources[framIndex]->PassConstantsBuffer->Resource();
+
+    auto cbAddress = passCB->GetGPUVirtualAddress();
+    auto heapIndex = PassCbvOffset + framIndex;
+
+    auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
+        cbvHeap->GetCPUDescriptorHandleForHeapStart());
+    handle.Offset(heapIndex, cbvUavDescriptorSize);
+
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{
+        .BufferLocation = cbAddress,
+        .SizeInBytes = passCBByteSize,
+    };
+    device->CreateConstantBufferView(&cbvDesc, handle);
+  }
+}
+
+void PBRRenderer::CreatePSOs() {
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc{
+      .pRootSignature = RootSignature.Get(),
+      .VS =
+          {
+              .pShaderBytecode = Shaders["standardVS"]->GetBufferPointer(),
+              .BytecodeLength = Shaders["standardVS"]->GetBufferSize(),
+          },
+      .PS =
+          {
+              .pShaderBytecode = Shaders["opaquePS"]->GetBufferPointer(),
+              .BytecodeLength = Shaders["opaquePS"]->GetBufferSize(),
+
+          },
+      .BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT),
+      .SampleMask = UINT_MAX,
+      .RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT),
+      .DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT),
+      .InputLayout = {.pInputElementDescs = InputLayout.data(),
+                      .NumElements = (UINT)InputLayout.size()},
+      .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+      .NumRenderTargets = 1,
+      .RTVFormats = {backBufferFormat},
+      .DSVFormat = depthStencilFormat,
+      .SampleDesc =
+          DXGI_SAMPLE_DESC{.Count = msaaState ? 4U : 1U,
+                           .Quality = msaaState ? (msaaQuality - 1) : 0},
+
+  };
+
+  ThrowIfFailed(device->CreateGraphicsPipelineState(
+      &opaquePsoDesc, IID_PPV_ARGS(&PSOs["opaque"])));
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC opaqueWireframePsoDesc = opaquePsoDesc;
+  opaqueWireframePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+  ThrowIfFailed(device->CreateGraphicsPipelineState(
+      &opaqueWireframePsoDesc, IID_PPV_ARGS(&PSOs["opaque_wireframe"])));
+}
 
 void PBRRenderer::UpdateObjectConstantsBuffer(const GameTimer &timer) {
   auto currentObjectCB = CurrentFrameResource->ObjectConstantsBuffer.get();

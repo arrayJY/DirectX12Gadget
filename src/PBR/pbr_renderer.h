@@ -7,7 +7,8 @@
 #include "../renderer.h"
 #include "../stdafx.h"
 #include "frame_resource.h"
-#include "render_item.h"
+
+struct RenderItem;
 
 class PBRRenderer : public Renderer {
 public:
@@ -16,6 +17,7 @@ public:
   void InitDirectX(const InitInfo &initInfo) override;
   void Update(const GameTimer &timer) override;
   void Draw(const GameTimer &timer) override;
+  static int GetFrameResourceCount() { return FrameResourceCount; }
 
 private:
   void CreateRootSignature();
@@ -31,13 +33,17 @@ private:
   void UpdateMainPassConstantsBuffer(const GameTimer &timer);
 
 private:
-  const int FrameResourceCount = 3;
+  static const int FrameResourceCount = 1;
   std::vector<std::unique_ptr<FrameResource>> FrameResources;
   FrameResource *CurrentFrameResource;
   int CurrentFrameResourceIndex = 0;
 
   std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
+  std::vector<RenderItem *> OpaqueRenderItems;
+
+
   PassConstants MainPassConstants;
+  UINT PassCbvOffset = 0U;
 
   XMFLOAT4X4 ModelMatrix = MathHelper::Identity4x4();
   XMFLOAT4X4 ViewMatrix = MathHelper::Identity4x4();
@@ -51,6 +57,8 @@ private:
 
   ComPtr<ID3D12RootSignature> RootSignature = nullptr;
   std::vector<D3D12_INPUT_ELEMENT_DESC> InputLayout;
+
+  ComPtr<ID3D12DescriptorHeap> cbvHeap = nullptr;
 
   std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> Geometries;
   std::unordered_map<std::string, ComPtr<ID3DBlob>> Shaders;
