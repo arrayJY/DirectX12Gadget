@@ -23,6 +23,10 @@ public:
 
   static int GetFrameResourceCount() { return FrameResourceCount; }
 
+  void KeyboardInput(int key, int scancode, int action, int mods) override;
+  void MouseButtonInput(int button, int action, int mods) override;
+  void MousePostionInput(double xPos, double yPos) override;
+
 private:
   void CreateRootSignature();
   void CreateShaderAndInputLayout();
@@ -42,7 +46,9 @@ private:
   std::vector<std::unique_ptr<FrameResource>> FrameResources;
   FrameResource *CurrentFrameResource;
   int CurrentFrameResourceIndex = 0;
-  bool IsWireFrame;
+  bool IsWireFrame = false;
+  bool MousePressed = false;
+  double LastMousePosX = 0.0, LastMousePosY = 0.0;
 
   std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
   std::vector<RenderItem *> OpaqueRenderItems;

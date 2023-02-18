@@ -14,9 +14,8 @@ public:
     unsigned height;
     HWND hwnd;
   };
-  Renderer(); 
-  static Renderer* GetRenderer();
-  static void OnResizeFrame(struct GLFWwindow* window, int width, int height);
+  Renderer();
+  static Renderer *GetRenderer();
 
   virtual void InitDirectX(const InitInfo &initInfo);
 
@@ -25,6 +24,18 @@ public:
   void FlushCommandQueue();
 
   void DrawFrame();
+
+  virtual void KeyboardInput(int key, int scancode, int action, int mods);
+  virtual void MousePostionInput(double xPos, double yPos);
+  virtual void MouseButtonInput(int button, int action, int mods);
+
+  static void OnResizeFrame(struct GLFWwindow *window, int width, int height);
+  static void OnKeyboardInput(struct GLFWwindow *window, int key, int scancode,
+                              int action, int mods);
+  static void OnMousePostionInput(struct GLFWwindow *window, double xPos,
+                                  double yPos);
+  static void OnMouseButtonInput(struct GLFWwindow *window, int button,
+                                 int action, int mods);
 
 protected:
   void CreateDevice();

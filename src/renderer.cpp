@@ -17,6 +17,22 @@ void Renderer::OnResizeFrame(struct GLFWwindow *window, int width, int height) {
   GetRenderer()->OnResize(width, height);
 }
 
+void Renderer::OnKeyboardInput(struct GLFWwindow *window, int key, int scancode,
+                               int action, int mods) {
+
+  GetRenderer()->KeyboardInput(key, scancode, action, mods);
+}
+
+void Renderer::OnMousePostionInput(struct GLFWwindow *window, double xPos,
+                                   double yPos) {
+  GetRenderer()->MousePostionInput(xPos, yPos);
+}
+
+void Renderer::OnMouseButtonInput(struct GLFWwindow *window, int button,
+                                  int action, int mods) {
+  GetRenderer()->MouseButtonInput(button, action, mods);
+}
+
 void Renderer::InitDirectX(const InitInfo &initInfo) {
 #if defined(DEBUG)
   {
@@ -80,6 +96,12 @@ void Renderer::DrawFrame() {
   Update(timer);
   Draw(timer);
 }
+
+void Renderer::KeyboardInput(int key, int scancode, int action, int mods) {}
+
+void Renderer::MousePostionInput(double xPos, double yPos) {}
+
+void Renderer::MouseButtonInput(int button, int action, int mods) {}
 
 void Renderer::CreateDevice() {
   ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)));
@@ -290,6 +312,4 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::DepthStencilView() const {
   return dsvHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
-float Renderer::AspectRatio() const {
-  return (float)Width / Height;
-}
+float Renderer::AspectRatio() const { return (float)Width / Height; }

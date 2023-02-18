@@ -21,6 +21,10 @@ void App::MainLoop(Renderer *renderer, unsigned width, unsigned height) {
   }
   glfwSetFramebufferSizeCallback(window, Renderer::OnResizeFrame);
 
+  glfwSetKeyCallback(window, Renderer::OnKeyboardInput);
+  glfwSetMouseButtonCallback(window, Renderer::OnMouseButtonInput);
+  glfwSetCursorPosCallback(window, Renderer::OnMousePostionInput);
+
   auto process_keystrokes_input = [](GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, 1);

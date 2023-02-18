@@ -5,6 +5,7 @@
 #include "pbr_renderer.h"
 #include "geometry_generator.h"
 #include "render_item.h"
+#include <GLFW/glfw3.h>
 
 using namespace DirectX;
 
@@ -585,4 +586,39 @@ void PBRRenderer::UpdateMainPassConstantsBuffer(const GameTimer &timer) {
   MainPassConstants.DeltaTime = timer.DeltaTime();
 
   CurrentFrameResource->PassConstantsBuffer->CopyData(0, MainPassConstants);
+}
+
+void PBRRenderer::KeyboardInput(int key, int scancode, int action, int mods) {
+  if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+    IsWireFrame = !IsWireFrame;
+  }
+}
+
+void PBRRenderer::MouseButtonInput(int button, int action, int mods) {
+  if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (action == GLFW_PRESS) {
+      MousePressed = true;
+    } else if (action == GLFW_RELEASE) {
+      MousePressed = false;
+      LastMousePosX = 0.0, LastMousePosY = 0.0;
+    }
+  }
+}
+void PBRRenderer::MousePostionInput(double xPos, double yPos) {
+  if(!MousePressed) return;
+
+  if (LastMousePosX == 0.0) {
+    LastMousePosX = xPos;
+  }
+  if (LastMousePosY == 0.0) {
+    LastMousePosY = yPos;
+  }
+
+  float dx =
+      XMConvertToRadians(0.05f * static_cast<float>(xPos - LastMousePosX));
+  float dy =
+      XMConvertToRadians(0.05f * static_cast<float>(yPos - LastMousePosY));
+
+  Theta += dx;
+  Phi += dy;
 }
