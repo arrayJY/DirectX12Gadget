@@ -30,6 +30,8 @@ void PBRRenderer::InitDirectX(const InitInfo &initInfo) {
 }
 
 void PBRRenderer::Update(const GameTimer &timer) {
+  UpdateCamera(timer);
+
   CurrentFrameResourceIndex =
       (CurrentFrameResourceIndex + 1) % FrameResourceCount;
   CurrentFrameResource = FrameResources[CurrentFrameResourceIndex].get();
@@ -43,7 +45,101 @@ void PBRRenderer::Update(const GameTimer &timer) {
   UpdateMainPassConstantsBuffer(timer);
 }
 
-void PBRRenderer::Draw(const GameTimer &timer) {}
+void PBRRenderer::OnResize(UINT width, UINT height) {
+  Renderer::OnResize(width, height);
+  XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * MathHelper::PI, AspectRatio(),
+                                        1.0f, 1000.0f);
+  XMStoreFloat4x4(&ProjectionMatrix, P);
+}
+
+void PBRRenderer::Draw(const GameTimer &timer) {
+  auto cmdListAllocator = CurrentFrameResource->CommandAllocator;
+
+  ThrowIfFailed(cmdListAllocator->Reset());
+
+  if (IsWireFrame) {
+    ThrowIfFailed(commandList->Reset(cmdListAllocator.Get(),
+                                     PSOs["opaque_wireframe"].Get()))
+  } else {
+    ThrowIfFailed(
+        commandList->Reset(cmdListAllocator.Get(), PSOs["opaque"].Get()))
+  }
+
+  commandList->RSSetViewports(1, &viewport);
+  commandList->RSSetScissorRects(1, &scissorRect);
+
+  auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+      CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT,
+      D3D12_RESOURCE_STATE_RENDER_TARGET);
+  commandList->ResourceBarrier(1, &barrier);
+
+  commandList->ClearRenderTargetView(CurrentBackBufferView(),
+                                     Colors::LightSteelBlue, 0, nullptr);
+  commandList->ClearDepthStencilView(
+      DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+      1.0f, 0, 0, nullptr);
+
+  auto currentBackBufferView = CurrentBackBufferView();
+  auto depthStencilView = DepthStencilView();
+  commandList->OMSetRenderTargets(1, &currentBackBufferView, true,
+                                  &depthStencilView);
+
+  ID3D12DescriptorHeap *descriptorHeaps[] = {cbvHeap.Get()};
+  commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+  commandList->SetGraphicsRootSignature(RootSignature.Get());
+
+  int passCbvIndex = PassCbvOffset + CurrentFrameResourceIndex;
+  auto passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
+      cbvHeap->GetGPUDescriptorHandleForHeapStart());
+  passCbvHandle.Offset(passCbvIndex, cbvUavDescriptorSize);
+  commandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
+
+  DrawRenderItems(commandList.Get(), OpaqueRenderItems);
+
+  const auto barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(
+      CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+      D3D12_RESOURCE_STATE_PRESENT);
+  commandList->ResourceBarrier(1, &barrier2);
+
+  ThrowIfFailed(commandList->Close());
+  ID3D12CommandList *cmdsLists[] = {commandList.Get()};
+  commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+  ThrowIfFailed(swapChain->Present(0, 0));
+  currentBackBufferIndex = (currentBackBufferIndex + 1) % swapChainBufferCount;
+
+  CurrentFrameResource->Fence = ++fenceValue;
+
+  commandQueue->Signal(fence.Get(), fenceValue);
+}
+
+void PBRRenderer::DrawRenderItems(ID3D12GraphicsCommandList *cmdList,
+                                  std::vector<RenderItem *> items) {
+  UINT objCBByteSize = DXUtils::CalcConstantBufferSize(sizeof(ObjectConstants));
+  auto objectCB = CurrentFrameResource->ObjectConstantsBuffer->Resource();
+
+  for (auto i = 0; i < items.size(); i++) {
+    auto renderItem = items[i];
+    auto vertexBufferView = renderItem->Geometry->VertexBufferView();
+    auto indexBufferView = renderItem->Geometry->IndexBufferView();
+
+    cmdList->IASetVertexBuffers(0, 1, &vertexBufferView);
+    cmdList->IASetIndexBuffer(&indexBufferView);
+    cmdList->IASetPrimitiveTopology(renderItem->PrimitiveType);
+
+    UINT cbvIndex = CurrentFrameResourceIndex * (UINT)OpaqueRenderItems.size() +
+                    renderItem->ObjectCBIndex;
+    auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
+        cbvHeap->GetGPUDescriptorHandleForHeapStart());
+    cbvHandle.Offset(cbvIndex, cbvUavDescriptorSize);
+
+    cmdList->SetGraphicsRootDescriptorTable(0, cbvHandle);
+    cmdList->DrawIndexedInstanced(renderItem->IndexCount, 1,
+                                  renderItem->StartIndexLocation,
+                                  renderItem->BaseVertexLocation, 0);
+  }
+}
 
 void PBRRenderer::CreateRootSignature() {
   CD3DX12_DESCRIPTOR_RANGE cbvTable[2];
@@ -441,6 +537,20 @@ void PBRRenderer::UpdateObjectConstantsBuffer(const GameTimer &timer) {
       i->NumberFramesDirty--;
     }
   }
+}
+
+void PBRRenderer::UpdateCamera(const GameTimer &timer) {
+  EyePos.x = Radius * sinf(Phi) * cosf(Theta);
+  EyePos.z = Radius * sinf(Phi) * sinf(Theta);
+  EyePos.y = Radius * cosf(Phi);
+
+  // Build the view matrix.
+  XMVECTOR pos = XMVectorSet(EyePos.x, EyePos.y, EyePos.z, 1.0f);
+  XMVECTOR target = XMVectorZero();
+  XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+  XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+  XMStoreFloat4x4(&ViewMatrix, view);
 }
 
 void PBRRenderer::UpdateMainPassConstantsBuffer(const GameTimer &timer) {

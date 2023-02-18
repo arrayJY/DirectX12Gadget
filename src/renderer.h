@@ -43,6 +43,7 @@ protected:
   ID3D12Resource *CurrentBackBuffer() const;
   D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
   D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
+  float AspectRatio() const;
 
   virtual void Draw(const GameTimer &timer) = 0;
   virtual void Update(const GameTimer &timer) = 0;
@@ -56,7 +57,7 @@ protected:
   ComPtr<ID3D12Device> device;
 
   ComPtr<ID3D12Fence> fence;
-  int fenceValue;
+  UINT64 fenceValue;
 
   bool msaaState = false;
   UINT msaaQuality;

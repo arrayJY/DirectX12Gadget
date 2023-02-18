@@ -289,3 +289,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE Renderer::CurrentBackBufferView() const {
 D3D12_CPU_DESCRIPTOR_HANDLE Renderer::DepthStencilView() const {
   return dsvHeap->GetCPUDescriptorHandleForHeapStart();
 }
+
+float Renderer::AspectRatio() const {
+  return (float)Width / Height;
+}

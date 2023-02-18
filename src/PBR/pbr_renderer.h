@@ -18,6 +18,9 @@ public:
   void InitDirectX(const InitInfo &initInfo) override;
   void Update(const GameTimer &timer) override;
   void Draw(const GameTimer &timer) override;
+  void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem*> items);
+  void OnResize(UINT width, UINT height) override;
+
   static int GetFrameResourceCount() { return FrameResourceCount; }
 
 private:
@@ -30,6 +33,7 @@ private:
   void CreateConstantBufferView();
   void CreatePSOs();
 
+  void UpdateCamera(const GameTimer &timer);
   void UpdateObjectConstantsBuffer(const GameTimer &timer);
   void UpdateMainPassConstantsBuffer(const GameTimer &timer);
 
@@ -38,6 +42,7 @@ private:
   std::vector<std::unique_ptr<FrameResource>> FrameResources;
   FrameResource *CurrentFrameResource;
   int CurrentFrameResourceIndex = 0;
+  bool IsWireFrame;
 
   std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
   std::vector<RenderItem *> OpaqueRenderItems;
