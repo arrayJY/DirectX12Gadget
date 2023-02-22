@@ -8,12 +8,12 @@
 #include "../math_helper.h"
 #include "../stdafx.h"
 
-static const int FrameResourceCount = 3;
 struct RenderItem {
   DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
 
   int NumberFramesDirty = FrameResourceCount;
   UINT ObjectCBIndex = -1;
+  PBRMaterial* Material;
 
   MeshGeometry *Geometry = nullptr;
 

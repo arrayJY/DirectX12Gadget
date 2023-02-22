@@ -29,6 +29,13 @@ struct PassConstants {
   float DeltaTime = 0.0f;
 };
 
+struct PBRMaterialConstants {
+  DirectX::XMFLOAT4 Albedo = {1.0f, 1.0f, 1.0f, 1.0f};
+  DirectX::XMFLOAT3 FresnelR0 = {0.01f, 0.01f, 0.01f};
+  float Rougness = 0.25f;
+  DirectX::XMFLOAT4X4 TransformMatrix = MathHelper::Identity4x4();
+};
+
 struct Vertex {
   DirectX::XMFLOAT3 Pos;
   DirectX::XMFLOAT4 Color;
@@ -36,7 +43,8 @@ struct Vertex {
 
 class FrameResource {
 public:
-  FrameResource(ID3D12Device *device, UINT passCount, UINT objectCount);
+  FrameResource(ID3D12Device *device, UINT passCount,
+                UINT objectCount, UINT materialCount);
   FrameResource(const FrameResource &) = delete;
   FrameResource &operator=(const FrameResource &) = delete;
 
@@ -44,6 +52,8 @@ public:
   std::unique_ptr<UploadBuffer<ObjectConstants>> ObjectConstantsBuffer =
       nullptr;
   std::unique_ptr<UploadBuffer<PassConstants>> PassConstantsBuffer = nullptr;
+  std::unique_ptr<UploadBuffer<PBRMaterialConstants>>
+      PBRMaterialConstantsBuffer = nullptr;
 
   UINT64 Fence = 0;
 };

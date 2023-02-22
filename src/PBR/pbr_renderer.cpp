@@ -17,6 +17,7 @@ void PBRRenderer::InitDirectX(const InitInfo &initInfo) {
   CreateRootSignature();
   CreateShaderAndInputLayout();
   CreateShapeGeometry();
+  CreateMaterials();
   CreateRenderItems();
   CreateFrameResource();
   CreateDescriptorHeaps();
@@ -43,6 +44,7 @@ void PBRRenderer::Update(const GameTimer &timer) {
   }
 
   UpdateObjectConstantsBuffer(timer);
+  // UpdateMaterialConstantsBuffer(timer);
   UpdateMainPassConstantsBuffer(timer);
 }
 
@@ -90,11 +92,15 @@ void PBRRenderer::Draw(const GameTimer &timer) {
 
   commandList->SetGraphicsRootSignature(RootSignature.Get());
 
-  int passCbvIndex = PassCbvOffset + CurrentFrameResourceIndex;
-  auto passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
-      cbvHeap->GetGPUDescriptorHandleForHeapStart());
-  passCbvHandle.Offset(passCbvIndex, cbvUavDescriptorSize);
-  commandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
+  // int passCbvIndex = PassCbvOffset + CurrentFrameResourceIndex;
+  // auto passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
+  // cbvHeap->GetGPUDescriptorHandleForHeapStart());
+  // passCbvHandle.Offset(passCbvIndex, cbvUavDescriptorSize);
+  // commandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
+
+  commandList->SetGraphicsRootConstantBufferView(
+      2, CurrentFrameResource->PassConstantsBuffer->Resource()
+             ->GetGPUVirtualAddress());
 
   DrawRenderItems(commandList.Get(), OpaqueRenderItems);
 
@@ -118,7 +124,11 @@ void PBRRenderer::Draw(const GameTimer &timer) {
 void PBRRenderer::DrawRenderItems(ID3D12GraphicsCommandList *cmdList,
                                   std::vector<RenderItem *> items) {
   UINT objCBByteSize = DXUtils::CalcConstantBufferSize(sizeof(ObjectConstants));
+  UINT matCBByteSize =
+      DXUtils::CalcConstantBufferSize(sizeof(PBRMaterialConstants));
+
   auto objectCB = CurrentFrameResource->ObjectConstantsBuffer->Resource();
+  auto matCB = CurrentFrameResource->PBRMaterialConstantsBuffer->Resource();
 
   for (auto i = 0; i < items.size(); i++) {
     auto renderItem = items[i];
@@ -129,13 +139,21 @@ void PBRRenderer::DrawRenderItems(ID3D12GraphicsCommandList *cmdList,
     cmdList->IASetIndexBuffer(&indexBufferView);
     cmdList->IASetPrimitiveTopology(renderItem->PrimitiveType);
 
-    UINT cbvIndex = CurrentFrameResourceIndex * (UINT)OpaqueRenderItems.size() +
-                    renderItem->ObjectCBIndex;
-    auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
-        cbvHeap->GetGPUDescriptorHandleForHeapStart());
-    cbvHandle.Offset(cbvIndex, cbvUavDescriptorSize);
+    auto objCBAddress = objectCB->GetGPUVirtualAddress() +
+                        renderItem->ObjectCBIndex * objCBByteSize;
+    auto matCBAddress = matCB->GetGPUVirtualAddress() +
+                        renderItem->Material->MatCBIndex * matCBByteSize;
 
-    cmdList->SetGraphicsRootDescriptorTable(0, cbvHandle);
+    cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+    cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);
+
+    // UINT cbvIndex = CurrentFrameResourceIndex *
+    // (UINT)OpaqueRenderItems.size() + renderItem->ObjectCBIndex;
+    // auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
+    // cbvHeap->GetGPUDescriptorHandleForHeapStart());
+    // cbvHandle.Offset(cbvIndex, cbvUavDescriptorSize);
+    // cmdList->SetGraphicsRootDescriptorTable(0, cbvHandle);
+
     cmdList->DrawIndexedInstanced(renderItem->IndexCount, 1,
                                   renderItem->StartIndexLocation,
                                   renderItem->BaseVertexLocation, 0);
@@ -143,16 +161,18 @@ void PBRRenderer::DrawRenderItems(ID3D12GraphicsCommandList *cmdList,
 }
 
 void PBRRenderer::CreateRootSignature() {
-  CD3DX12_DESCRIPTOR_RANGE cbvTable[2];
-  cbvTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-  cbvTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+  // CD3DX12_DESCRIPTOR_RANGE cbvTable[2];
+  // cbvTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+  // cbvTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
 
-  CD3DX12_ROOT_PARAMETER slotRootParameter[2];
-  slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable[0]);
-  slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable[1]);
+  std::array<CD3DX12_ROOT_PARAMETER, 3> slotRootParameter;
+  for (auto i = 0; i < slotRootParameter.size(); i++) {
+    slotRootParameter[i].InitAsConstantBufferView(i);
+  }
+  // slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable[1]);
 
   CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-      2, slotRootParameter, 0, nullptr,
+      slotRootParameter.size(), slotRootParameter.data(), 0, nullptr,
       D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
   ComPtr<ID3DBlob> serializedRootSig = nullptr;
@@ -319,6 +339,45 @@ void PBRRenderer::CreateShapeGeometry() {
   Geometries[geo->Name] = std::move(geo);
 }
 
+void PBRRenderer::CreateMaterials() {
+  auto bricks0 = std::make_unique<PBRMaterial>();
+  bricks0->Name = "bricks0";
+  bricks0->MatCBIndex = 0;
+  bricks0->DiffuseSrvHeapIndex = 0;
+  bricks0->Albedo = XMFLOAT4(Colors::ForestGreen);
+  bricks0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
+  bricks0->Roughness = 0.1f;
+
+  auto stone0 = std::make_unique<PBRMaterial>();
+  stone0->Name = "stone0";
+  stone0->MatCBIndex = 1;
+  stone0->DiffuseSrvHeapIndex = 1;
+  stone0->Albedo = XMFLOAT4(Colors::LightSteelBlue);
+  stone0->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
+  stone0->Roughness = 0.3f;
+
+  auto tile0 = std::make_unique<PBRMaterial>();
+  tile0->Name = "tile0";
+  tile0->MatCBIndex = 2;
+  tile0->DiffuseSrvHeapIndex = 2;
+  tile0->Albedo = XMFLOAT4(Colors::LightGray);
+  tile0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
+  tile0->Roughness = 0.2f;
+
+  auto skullMat = std::make_unique<PBRMaterial>();
+  skullMat->Name = "skullMat";
+  skullMat->MatCBIndex = 3;
+  skullMat->DiffuseSrvHeapIndex = 3;
+  skullMat->Albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+  skullMat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05);
+  skullMat->Roughness = 0.3f;
+
+  Materials["bricks0"] = std::move(bricks0);
+  Materials["stone0"] = std::move(stone0);
+  Materials["tile0"] = std::move(tile0);
+  Materials["skullMat"] = std::move(skullMat);
+}
+
 void PBRRenderer::CreateRenderItems() {
   auto BoxItem = std::make_unique<RenderItem>();
   XMStoreFloat4x4(&BoxItem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) *
@@ -328,6 +387,7 @@ void PBRRenderer::CreateRenderItems() {
                                         XMMatrixTranslation(0.0f, 0.5f, 0.0f));
   boxRitem->ObjectCBIndex = 0;
   boxRitem->Geometry = Geometries["shapeGeo"].get();
+  boxRitem->Material = Materials["stone0"].get();
   boxRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
   boxRitem->IndexCount = boxRitem->Geometry->DrawArgs["box"].IndexCount;
   boxRitem->StartIndexLocation =
@@ -340,6 +400,7 @@ void PBRRenderer::CreateRenderItems() {
   gridRitem->World = MathHelper::Identity4x4();
   gridRitem->ObjectCBIndex = 1;
   gridRitem->Geometry = Geometries["shapeGeo"].get();
+  gridRitem->Material = Materials["tile0"].get();
   gridRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
   gridRitem->IndexCount = gridRitem->Geometry->DrawArgs["grid"].IndexCount;
   gridRitem->StartIndexLocation =
@@ -367,6 +428,7 @@ void PBRRenderer::CreateRenderItems() {
     XMStoreFloat4x4(&leftCylRitem->World, rightCylWorld);
     leftCylRitem->ObjectCBIndex = ObjectCBIndex++;
     leftCylRitem->Geometry = Geometries["shapeGeo"].get();
+    leftCylRitem->Material = Materials["bricks0"].get();
     leftCylRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     leftCylRitem->IndexCount =
         leftCylRitem->Geometry->DrawArgs["cylinder"].IndexCount;
@@ -378,6 +440,7 @@ void PBRRenderer::CreateRenderItems() {
     XMStoreFloat4x4(&rightCylRitem->World, leftCylWorld);
     rightCylRitem->ObjectCBIndex = ObjectCBIndex++;
     rightCylRitem->Geometry = Geometries["shapeGeo"].get();
+    rightCylRitem->Material = Materials["bricks0"].get();
     rightCylRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     rightCylRitem->IndexCount =
         rightCylRitem->Geometry->DrawArgs["cylinder"].IndexCount;
@@ -389,6 +452,7 @@ void PBRRenderer::CreateRenderItems() {
     XMStoreFloat4x4(&leftSphereRitem->World, leftSphereWorld);
     leftSphereRitem->ObjectCBIndex = ObjectCBIndex++;
     leftSphereRitem->Geometry = Geometries["shapeGeo"].get();
+    leftSphereRitem->Material = Materials["stone0"].get();
     leftSphereRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     leftSphereRitem->IndexCount =
         leftSphereRitem->Geometry->DrawArgs["sphere"].IndexCount;
@@ -400,6 +464,7 @@ void PBRRenderer::CreateRenderItems() {
     XMStoreFloat4x4(&rightSphereRitem->World, rightSphereWorld);
     rightSphereRitem->ObjectCBIndex = ObjectCBIndex++;
     rightSphereRitem->Geometry = Geometries["shapeGeo"].get();
+    rightSphereRitem->Material = Materials["stone0"].get();
     rightSphereRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     rightSphereRitem->IndexCount =
         rightSphereRitem->Geometry->DrawArgs["sphere"].IndexCount;
@@ -424,7 +489,7 @@ void PBRRenderer::CreateFrameResource() {
   FrameResources.reserve(FrameResourceCount);
   for (auto i = 0; i < FrameResourceCount; i++) {
     FrameResources.push_back(std::make_unique<FrameResource>(
-        device.Get(), 1, AllRenderItems.size()));
+        device.Get(), 1, AllRenderItems.size(), Materials.size()));
   }
 }
 
@@ -540,6 +605,23 @@ void PBRRenderer::UpdateObjectConstantsBuffer(const GameTimer &timer) {
   }
 }
 
+void PBRRenderer::UpdateMaterialConstantsBuffer(const GameTimer &timer) {
+  auto currnetMaterialCB =
+      CurrentFrameResource->PBRMaterialConstantsBuffer.get();
+  for (auto &m : Materials) {
+    auto mat = m.second.get();
+    if (mat->NumFrameDirty > 0) {
+      PBRMaterialConstants matConstants;
+      matConstants.Albedo = mat->Albedo;
+      matConstants.FresnelR0 = mat->FresnelR0;
+      matConstants.Rougness = mat->Roughness;
+
+      currnetMaterialCB->CopyData(mat->MatCBIndex, matConstants);
+      mat->NumFrameDirty--;
+    }
+  }
+}
+
 void PBRRenderer::UpdateCamera(const GameTimer &timer) {
   EyePos.x = Radius * sinf(Phi) * cosf(Theta);
   EyePos.z = Radius * sinf(Phi) * sinf(Theta);
@@ -605,7 +687,8 @@ void PBRRenderer::MouseButtonInput(int button, int action, int mods) {
   }
 }
 void PBRRenderer::MousePostionInput(double xPos, double yPos) {
-  if(!MousePressed) return;
+  if (!MousePressed)
+    return;
 
   if (LastMousePosX == 0.0) {
     LastMousePosX = xPos;

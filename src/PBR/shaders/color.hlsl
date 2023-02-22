@@ -9,7 +9,15 @@ cbuffer cbPerObject : register(b0)
 	float4x4 gWorld; 
 };
 
-cbuffer cbPass : register(b1)
+cbuffer cbMaterial : register(b1)
+{
+	float4 gDiffuseAlbedo;
+    float3 gFresnelR0;
+    float  gRoughness;
+	float4x4 gMatTransform;
+};
+
+cbuffer cbPass : register(b2)
 {
     float4x4 gView;
     float4x4 gInvView;

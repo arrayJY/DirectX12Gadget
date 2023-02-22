@@ -18,7 +18,8 @@ public:
   void InitDirectX(const InitInfo &initInfo) override;
   void Update(const GameTimer &timer) override;
   void Draw(const GameTimer &timer) override;
-  void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<RenderItem*> items);
+  void DrawRenderItems(ID3D12GraphicsCommandList *cmdList,
+                       std::vector<RenderItem *> items);
   void OnResize(UINT width, UINT height) override;
 
   static int GetFrameResourceCount() { return FrameResourceCount; }
@@ -31,6 +32,7 @@ private:
   void CreateRootSignature();
   void CreateShaderAndInputLayout();
   void CreateShapeGeometry();
+  void CreateMaterials();
   void CreateRenderItems();
   void CreateFrameResource();
   void CreateDescriptorHeaps();
@@ -39,6 +41,7 @@ private:
 
   void UpdateCamera(const GameTimer &timer);
   void UpdateObjectConstantsBuffer(const GameTimer &timer);
+  void UpdateMaterialConstantsBuffer(const GameTimer &timer);
   void UpdateMainPassConstantsBuffer(const GameTimer &timer);
 
 private:
@@ -50,6 +53,7 @@ private:
   bool MousePressed = false;
   double LastMousePosX = 0.0, LastMousePosY = 0.0;
 
+  std::unordered_map<std::string, std::unique_ptr<PBRMaterial>> Materials;
   std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
   std::vector<RenderItem *> OpaqueRenderItems;
 

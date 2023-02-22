@@ -19,6 +19,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <array>
 #include <windows.h>
 
 
@@ -32,6 +33,8 @@ using DirectX::XMVECTOR;
 using DirectX::XMVectorSet;
 using DirectX::XMVectorZero;
 using DirectX::XMStoreFloat4x4;
+
+static const int FrameResourceCount = 3;
 
 #define SAFE_RELEASE(p)                                                        \
   {                                                                            \
