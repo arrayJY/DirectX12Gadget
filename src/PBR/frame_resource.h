@@ -31,20 +31,27 @@ struct PassConstants {
 
 struct PBRMaterialConstants {
   DirectX::XMFLOAT4 Albedo = {1.0f, 1.0f, 1.0f, 1.0f};
-  DirectX::XMFLOAT3 FresnelR0 = {0.01f, 0.01f, 0.01f};
   float Rougness = 0.25f;
+  float Metallic = 0.0f;
   DirectX::XMFLOAT4X4 TransformMatrix = MathHelper::Identity4x4();
+};
+
+struct AreaLight {
+  DirectX::XMFLOAT3 Color = {0.0f, 0.0f, 0.0f};
+  float Intensity = 0.0f;
+  DirectX::XMFLOAT3X4 Verties = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 };
 
 struct Vertex {
   DirectX::XMFLOAT3 Pos;
-  DirectX::XMFLOAT4 Color;
+  DirectX::XMFLOAT3 Normal;
 };
 
 class FrameResource {
 public:
-  FrameResource(ID3D12Device *device, UINT passCount,
-                UINT objectCount, UINT materialCount);
+  FrameResource(ID3D12Device *device, UINT passCount, UINT objectCount,
+                UINT materialCount);
   FrameResource(const FrameResource &) = delete;
   FrameResource &operator=(const FrameResource &) = delete;
 

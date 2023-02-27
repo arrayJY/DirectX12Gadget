@@ -59,8 +59,8 @@ struct PBRMaterial {
   int NumFrameDirty = FrameResourceCount;
 
   DirectX::XMFLOAT4 Albedo = {1.0f, 1.0f, 1.0f, 1.0f};
-  DirectX::XMFLOAT3 FresnelR0 = {0.01f, 0.01f, 0.01f};
   float Roughness = 0.25f;
+  float Metallic = 0.0f;
   DirectX::XMFLOAT4X4 TransformMatrix = MathHelper::Identity4x4();
 };
 

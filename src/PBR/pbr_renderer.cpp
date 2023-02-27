@@ -276,22 +276,22 @@ void PBRRenderer::CreateShapeGeometry() {
   UINT k = 0;
   for (size_t i = 0; i < box.Vertices.size(); ++i, ++k) {
     vertices[k].Pos = box.Vertices[i].Position;
-    vertices[k].Color = XMFLOAT4(DirectX::Colors::DarkGreen);
+    vertices[k].Normal = box.Vertices[i].Normal;
   }
 
   for (size_t i = 0; i < grid.Vertices.size(); ++i, ++k) {
     vertices[k].Pos = grid.Vertices[i].Position;
-    vertices[k].Color = XMFLOAT4(DirectX::Colors::ForestGreen);
+    vertices[k].Normal = grid.Vertices[i].Normal;
   }
 
   for (size_t i = 0; i < sphere.Vertices.size(); ++i, ++k) {
     vertices[k].Pos = sphere.Vertices[i].Position;
-    vertices[k].Color = XMFLOAT4(DirectX::Colors::Crimson);
+    vertices[k].Normal = sphere.Vertices[i].Normal;
   }
 
   for (size_t i = 0; i < cylinder.Vertices.size(); ++i, ++k) {
     vertices[k].Pos = cylinder.Vertices[i].Position;
-    vertices[k].Color = XMFLOAT4(DirectX::Colors::SteelBlue);
+    vertices[k].Normal = cylinder.Vertices[i].Normal;
   }
 
   std::vector<std::uint16_t> indices;
@@ -345,7 +345,7 @@ void PBRRenderer::CreateMaterials() {
   bricks0->MatCBIndex = 0;
   bricks0->DiffuseSrvHeapIndex = 0;
   bricks0->Albedo = XMFLOAT4(Colors::ForestGreen);
-  bricks0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
+  bricks0->Metallic = 0.02f;
   bricks0->Roughness = 0.1f;
 
   auto stone0 = std::make_unique<PBRMaterial>();
@@ -353,7 +353,7 @@ void PBRRenderer::CreateMaterials() {
   stone0->MatCBIndex = 1;
   stone0->DiffuseSrvHeapIndex = 1;
   stone0->Albedo = XMFLOAT4(Colors::LightSteelBlue);
-  stone0->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
+  stone0->Metallic = 0.05;
   stone0->Roughness = 0.3f;
 
   auto tile0 = std::make_unique<PBRMaterial>();
@@ -361,7 +361,7 @@ void PBRRenderer::CreateMaterials() {
   tile0->MatCBIndex = 2;
   tile0->DiffuseSrvHeapIndex = 2;
   tile0->Albedo = XMFLOAT4(Colors::LightGray);
-  tile0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
+  tile0->Metallic = 0.02;
   tile0->Roughness = 0.2f;
 
   auto skullMat = std::make_unique<PBRMaterial>();
@@ -369,7 +369,7 @@ void PBRRenderer::CreateMaterials() {
   skullMat->MatCBIndex = 3;
   skullMat->DiffuseSrvHeapIndex = 3;
   skullMat->Albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-  skullMat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05);
+  skullMat->Metallic= 0.05;
   skullMat->Roughness = 0.3f;
 
   Materials["bricks0"] = std::move(bricks0);
@@ -613,7 +613,7 @@ void PBRRenderer::UpdateMaterialConstantsBuffer(const GameTimer &timer) {
     if (mat->NumFrameDirty > 0) {
       PBRMaterialConstants matConstants;
       matConstants.Albedo = mat->Albedo;
-      matConstants.FresnelR0 = mat->FresnelR0;
+      matConstants.Metallic = mat->Metallic;
       matConstants.Rougness = mat->Roughness;
 
       currnetMaterialCB->CopyData(mat->MatCBIndex, matConstants);
