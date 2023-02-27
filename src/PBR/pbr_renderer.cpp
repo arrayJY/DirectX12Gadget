@@ -733,4 +733,7 @@ void PBRRenderer::MousePostionInput(double xPos, double yPos) {
 
   Theta += dx;
   Phi += dy;
+
+  LastMousePosX = xPos;
+  LastMousePosY = yPos;
 }
