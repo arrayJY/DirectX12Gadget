@@ -64,11 +64,12 @@ struct PBRMaterial {
   DirectX::XMFLOAT4X4 TransformMatrix = MathHelper::Identity4x4();
 };
 
+
+#define MaxLights 16
+
 struct Light {
-  DirectX::XMFLOAT3 Strength = {0.5f, 0.5f, 0.5f};
-  float FalloffStart = 1.0f;
-  DirectX::XMFLOAT3 Direction = {0.0f, -1.0f, 0.0f};
-  float FalloffEnd = 10.0f;
+  DirectX::XMFLOAT3 Color = {1.0f, 1.0f, 1.0f};
+  float Intensity = 0.0f;
   DirectX::XMFLOAT3 Position = {0.0f, 0.0f, 0.0f};
-  float SpotPower = 64.0f;
+  float _padding = 0.0f;
 };

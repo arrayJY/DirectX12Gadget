@@ -3,10 +3,11 @@
 
 static const float PI = 3.14159265;
 
-struct AreaLight {
+struct Light {
   float3 Color;
   float Intensity;
   float3 Position;
+  float _Padding;
 };
 
 struct Material {

@@ -26,7 +26,7 @@ cbuffer cbPass : register(b2) {
   float gTotalTime;
   float gDeltaTime;
 
-  AreaLight gLights[MaxLights];
+  Light gLights[MaxLights];
 };
 
 struct VertexIn {
@@ -60,7 +60,7 @@ float4 PS(VertexOut pin) : SV_Target {
   float3 Lo = float3(0.0f, 0.0f, 0.0f);
 
   for(int i = 0; i < 4; i++) {
-    float lightPos = gLights[i].Position;
+    float3 lightPos = gLights[i].Position;
     float3 lightDir = normalize(lightPos - pin.PosW);
     float3 halfDir = normalize(eyeDir + lightDir);
     float distance = length(lightPos - pin.PosW);
@@ -69,5 +69,5 @@ float4 PS(VertexOut pin) : SV_Target {
 
     Lo += BRDF(pin.NormalW, halfDir, lightDir, eyeDir, mat);
   }
-  return Lo;
+  return float4(Lo, 1.0f);
 }

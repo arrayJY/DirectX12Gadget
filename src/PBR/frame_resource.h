@@ -27,6 +27,8 @@ struct PassConstants {
   float FarZ = 0.0f;
   float TotalTime = 0.0f;
   float DeltaTime = 0.0f;
+
+  Light Lights[MaxLights];
 };
 
 struct PBRMaterialConstants {

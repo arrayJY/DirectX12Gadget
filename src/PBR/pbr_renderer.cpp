@@ -19,6 +19,7 @@ void PBRRenderer::InitDirectX(const InitInfo &initInfo) {
   CreateShapeGeometry();
   CreateMaterials();
   CreateRenderItems();
+  CreateLights();
   CreateFrameResource();
   CreateDescriptorHeaps();
   CreateConstantBufferView();
@@ -44,7 +45,7 @@ void PBRRenderer::Update(const GameTimer &timer) {
   }
 
   UpdateObjectConstantsBuffer(timer);
-  // UpdateMaterialConstantsBuffer(timer);
+  UpdateMaterialConstantsBuffer(timer);
   UpdateMainPassConstantsBuffer(timer);
 }
 
@@ -206,9 +207,9 @@ void PBRRenderer::CreateShaderAndInputLayout() {
       .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
       .InstanceDataStepRate = 0});
   InputLayout.push_back(D3D12_INPUT_ELEMENT_DESC{
-      .SemanticName = "COLOR",
+      .SemanticName = "NORMAL",
       .SemanticIndex = 0,
-      .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+      .Format = DXGI_FORMAT_R32G32B32_FLOAT,
       .InputSlot = 0,
       .AlignedByteOffset = 12,
       .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
@@ -369,7 +370,7 @@ void PBRRenderer::CreateMaterials() {
   skullMat->MatCBIndex = 3;
   skullMat->DiffuseSrvHeapIndex = 3;
   skullMat->Albedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-  skullMat->Metallic= 0.05;
+  skullMat->Metallic = 0.05;
   skullMat->Roughness = 0.3f;
 
   Materials["bricks0"] = std::move(bricks0);
@@ -483,6 +484,30 @@ void PBRRenderer::CreateRenderItems() {
   for (auto &i : AllRenderItems) {
     OpaqueRenderItems.push_back(i.get());
   }
+}
+
+void PBRRenderer::CreateLights() {
+  LightNum = 4;
+  AllLights[0] = Light{
+      .Color = XMFLOAT3{1.0f, 1.0f, 1.0f},
+      .Intensity = 100,
+      .Position = XMFLOAT3{10.0f, 10.0f, 10.0f},
+  };
+  AllLights[1] = Light{
+      .Color = XMFLOAT3{1.0f, 1.0f, 1.0f},
+      .Intensity = 100,
+      .Position = XMFLOAT3{10.0f, 10.0f, 10.0f},
+  };
+  AllLights[2] = Light{
+      .Color = XMFLOAT3{1.0f, 1.0f, 1.0f},
+      .Intensity = 100,
+      .Position = XMFLOAT3{-10.0f, 10.0f, -10.0f},
+  };
+  AllLights[3] = Light{
+      .Color = XMFLOAT3{1.0f, 1.0f, 1.0f},
+      .Intensity = 100,
+      .Position = XMFLOAT3{-10.0f, -10.0f, -10.0f},
+  };
 }
 
 void PBRRenderer::CreateFrameResource() {
@@ -666,6 +691,10 @@ void PBRRenderer::UpdateMainPassConstantsBuffer(const GameTimer &timer) {
   MainPassConstants.FarZ = 1000.0f;
   MainPassConstants.TotalTime = timer.TotalTime();
   MainPassConstants.DeltaTime = timer.DeltaTime();
+
+  for (auto i = 0; i < LightNum; i++) {
+    MainPassConstants.Lights[i] = AllLights[i];
+  }
 
   CurrentFrameResource->PassConstantsBuffer->CopyData(0, MainPassConstants);
 }

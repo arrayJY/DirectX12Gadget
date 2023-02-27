@@ -6,5 +6,5 @@
 
 int main() {
   PBRRenderer renderer;
-  App::MainLoop(&renderer, 800, 600);
+  App::MainLoop(&renderer, 1920, 1080);
 }

@@ -34,6 +34,7 @@ private:
   void CreateShapeGeometry();
   void CreateMaterials();
   void CreateRenderItems();
+  void CreateLights();
   void CreateFrameResource();
   void CreateDescriptorHeaps();
   void CreateConstantBufferView();
@@ -56,6 +57,10 @@ private:
   std::unordered_map<std::string, std::unique_ptr<PBRMaterial>> Materials;
   std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
   std::vector<RenderItem *> OpaqueRenderItems;
+
+  int LightNum = 0;
+  Light AllLights[MaxLights];
+
 
   PassConstants MainPassConstants;
   UINT PassCbvOffset = 0U;
