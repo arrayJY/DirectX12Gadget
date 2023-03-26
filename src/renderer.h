@@ -50,6 +50,7 @@ protected:
   void CreateDepthStencilView();
   void CreateViewportAndScissorRect(UINT width, UINT height);
   void WaitForFence(UINT64 value);
+  std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> GetStaticSamplers();
 
   ID3D12Resource *CurrentBackBuffer() const;
   D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;

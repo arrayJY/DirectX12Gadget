@@ -22,6 +22,11 @@ target("PBR")
     add_files("src/PBR/*.cpp")
     add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/PBR/shaders"):gsub("\\", "/") .. "\"" )
 
+target("Shadow")
+    set_kind("binary")
+    add_files("src/Shadow/*.cpp")
+    add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/Shadow/shaders"):gsub("\\", "/") .. "\"" )
+
 --
 -- If you want to known more usage about xmake, please see https://xmake.io
 --

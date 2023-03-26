@@ -73,3 +73,11 @@ struct Light {
   DirectX::XMFLOAT3 Position = {0.0f, 0.0f, 0.0f};
   float _padding = 0.0f;
 };
+
+struct Texture {
+    std::string Name;
+    std::wstring FileName;
+
+    ComPtr<ID3D12Resource> Resource = nullptr;
+    ComPtr<ID3D12Resource> UploadHeap = nullptr;
+};
