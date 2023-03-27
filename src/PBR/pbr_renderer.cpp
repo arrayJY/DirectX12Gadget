@@ -3,7 +3,7 @@
 //
 
 #include "pbr_renderer.h"
-#include "geometry_generator.h"
+#include "../geometry_generator.h"
 #include "render_item.h"
 #include <GLFW/glfw3.h>
 

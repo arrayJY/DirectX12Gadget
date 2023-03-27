@@ -4,13 +4,16 @@ set_languages("c++20")
 add_rules("mode.debug", "mode.release")
 add_requires("glfw", "directxtk")
 
+add_repositories("my-repo myrepo")
+add_requires("directxtk12")
+
 if is_mode("debug") then
     add_defines("DEBUG")
 end
 
 add_files("src/*.cpp")
 add_syslinks("d3d12", "dxgi", "d3dcompiler")
-add_packages("glfw", "directxtk")
+add_packages("glfw", "directxtk12")
 
 target("Box")
     set_kind("binary")
@@ -26,6 +29,7 @@ target("Shadow")
     set_kind("binary")
     add_files("src/Shadow/*.cpp")
     add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/Shadow/shaders"):gsub("\\", "/") .. "\"" )
+    add_defines("TEXTURE_DIR=L\"" .. path.join(os.projectdir(), "src/Shadow/textures"):gsub("\\", "/") .. "\"" )
 
 --
 -- If you want to known more usage about xmake, please see https://xmake.io

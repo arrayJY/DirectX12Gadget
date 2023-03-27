@@ -4,13 +4,46 @@
 
 #pragma once
 
+#include "../camera.h"
 #include "../renderer.h"
+#include "frame_resource.h"
 #include "shadow_map.h"
+
+
+enum class RenderLayer : int {
+  Opaque = 0,
+  Count,
+};
+
+struct RenderItem {
+  RenderItem() = default;
+  RenderItem(const RenderItem &rhs) = delete;
+
+  XMFLOAT4X4 World = MathHelper::Identity4x4();
+
+  XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+
+  int NumFramesDirty = FrameResourceCount;
+
+  UINT ObjCBIndex = -1;
+
+  Material *Mat = nullptr;
+  MeshGeometry *Geo = nullptr;
+
+  D3D12_PRIMITIVE_TOPOLOGY PrimitiveType =
+      D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+  UINT IndexCount = 0;
+  UINT StartIndexLocation = 0;
+  int BaseVertexLocation = 0;
+};
 
 class ShadowRenderer : public Renderer {
 public:
   void InitDirectX(const InitInfo &initInfo) override;
   void OnResize(UINT width, UINT height) override;
+  void Draw(const GameTimer &timer) override;
+  void Update(const GameTimer &timer) override;
 
 private:
   void LoadTextures();
@@ -18,9 +51,19 @@ private:
   void CreateDescriptorHeaps();
   void CreateShadersAndInputLayout();
   void CreateShapeGeometry();
+  void CreateMaterials();
+  void CreateRenderItems();
+  void CreateFrameResources();
   void CreatePSOs();
 
+  void DrawRenderItems(
+    ID3D12GraphicsCommandList *cmdList,
+    const std::vector<RenderItem*> &renderItems);
+  void DrawSceneToShadowMap();
+
 private:
+  Camera camera;
+
   ComPtr<ID3D12RootSignature> RootSignature = nullptr;
   ComPtr<ID3D12DescriptorHeap> srvDescriptorHeap = nullptr;
 
@@ -28,8 +71,17 @@ private:
   UINT NullTextureSrvIndex = 0;
   CD3DX12_GPU_DESCRIPTOR_HANDLE NullSrv;
 
+  std::vector<std::unique_ptr<FrameResource>> FrameResources;
+  FrameResource* CurrentFrameResource = nullptr;
+  int CurrentFrameResourceIndex = 0;
+
+  std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
+  std::vector<RenderItem*> LayerItems[(int)RenderLayer::Count];
+
   std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
   std::unique_ptr<ShadowMap> shadowMap = nullptr;
   std::unordered_map<std::string, ComPtr<ID3DBlob>> Shaders;
-  std::unordered_map<std::string, ComPtr<ID3D12Resource>> PSOs;
+  std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> PSOs;
+  std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> Geometries;
+  std::unordered_map<std::string, std::unique_ptr<Material>> Materials;
 };

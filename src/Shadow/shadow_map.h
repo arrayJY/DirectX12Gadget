@@ -21,6 +21,8 @@ public:
 
   D3D12_VIEWPORT Viewport() const { return viewport; }
   D3D12_RECT ScissorRect() const { return scissorRect; }
+  ID3D12Resource* Resource() { return shadowMap.Get(); }
+
 
   void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE cpuSrv,
                         CD3DX12_GPU_DESCRIPTOR_HANDLE gpuSrv,
