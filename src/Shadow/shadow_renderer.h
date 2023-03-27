@@ -61,6 +61,12 @@ private:
     const std::vector<RenderItem*> &renderItems);
   void DrawSceneToShadowMap();
 
+  void UpdateObjectCBs(const GameTimer &timer);
+  void UpdateMaterialBuffer(const GameTimer &timer);
+  void UpdateShadowTransform(const GameTimer &timer);
+  void UpdateMainPassCB(const GameTimer &timer);
+  void UpdateShadowPassCB(const GameTimer &timer);
+
 private:
   Camera camera;
 

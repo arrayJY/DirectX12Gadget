@@ -10,6 +10,8 @@
 
 struct ObjectConstants {
   DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
+  DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+  int MaterialIndex = -1;
 };
 
 struct PassConstants {
@@ -34,7 +36,7 @@ struct PassConstants {
 struct MaterialConstants {
   DirectX::XMFLOAT4 Albedo = {1.0f, 1.0f, 1.0f, 1.0f};
   DirectX::XMFLOAT3 FresnelR0 = {0.01f, 0.01f, 0.01f};
-  float Rougness = 0.25f;
+  float Roughness = 0.25f;
   float Metallic = 0.0f;
   DirectX::XMFLOAT4X4 TransformMatrix = MathHelper::Identity4x4();
   UINT DiffuseMapIndex = 0;

@@ -77,9 +77,45 @@ void ShadowRenderer::Draw(const GameTimer &timer) {
   commandList->OMSetRenderTargets(1, &currentBackBuffer, true,
                                   &depthStencilView);
 
+  auto passCB = CurrentFrameResource->PassConstantsBuffer->Resource();
+  commandList->SetGraphicsRootConstantBufferView(
+      1, passCB->GetGPUVirtualAddress());
+
+  commandList->SetPipelineState(PSOs["opaque"].Get());
+  DrawRenderItems(commandList.Get(), LayerItems[(int)RenderLayer::Opaque]);
+
+  barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+      CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+      D3D12_RESOURCE_STATE_PRESENT);
+  commandList->ResourceBarrier(1, &barrier);
+
+  ThrowIfFailed(commandList->Close());
+
+  ID3D12CommandList *cmdLists[] = {commandList.Get()};
+  commandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+
+  ThrowIfFailed(swapChain->Present(0, 0));
+  currentBackBufferIndex = (currentBackBufferIndex + 1) % swapChainBufferCount;
+
+  CurrentFrameResource->Fence = ++fenceValue;
+  commandQueue->Signal(fence.Get(), fenceValue);
 }
 
-void ShadowRenderer::Update(const GameTimer &timer) {}
+void ShadowRenderer::Update(const GameTimer &timer) {
+  CurrentFrameResourceIndex =
+      (CurrentFrameResourceIndex + 1) % FrameResourceCount;
+  CurrentFrameResource = FrameResources[CurrentFrameResourceIndex].get();
+
+  if (CurrentFrameResource->Fence != 0 &&
+      fence->GetCompletedValue() < CurrentFrameResource->Fence) {
+    HANDLE eventHandle =
+        CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
+    ThrowIfFailed(
+        fence->SetEventOnCompletion(CurrentFrameResource->Fence, eventHandle));
+    WaitForSingleObject(eventHandle, INFINITE);
+    CloseHandle(eventHandle);
+  }
+}
 
 void ShadowRenderer::LoadTextures() {
   // TODO
@@ -540,3 +576,51 @@ void ShadowRenderer::DrawSceneToShadowMap() {
       D3D12_RESOURCE_STATE_GENERIC_READ);
   commandList->ResourceBarrier(1, &barrier);
 }
+
+void ShadowRenderer::UpdateObjectCBs(const GameTimer &timer) {
+  auto currenObjecttCB = CurrentFrameResource->ObjectConstantsBuffer.get();
+  for (auto &i : AllRenderItems) {
+    if (i->NumFramesDirty > 0) {
+      XMMATRIX world = XMLoadFloat4x4(&i->World);
+      XMMATRIX texTransform = XMLoadFloat4x4(&i->TexTransform);
+
+      ObjectConstants objConstants;
+      XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+      XMStoreFloat4x4(&objConstants.TexTransform,
+                      XMMatrixTranspose(texTransform));
+      objConstants.MaterialIndex = i->Mat->MatCBIndex;
+
+      currenObjecttCB->CopyData(i->ObjCBIndex, objConstants);
+      i->NumFramesDirty--;
+    }
+  }
+}
+
+void ShadowRenderer::UpdateMaterialBuffer(const GameTimer &timer) {
+  auto currMaterialBuffer = CurrentFrameResource->MaterialConstantsBuffer.get();
+  for (auto &m : Materials) {
+    Material *mat = m.second.get();
+    if (mat->NumFrameDirty > 0) {
+      XMMATRIX matTransform = XMLoadFloat4x4(&mat->TransformMatrix);
+
+      MaterialConstants matData;
+      matData.Albedo = mat->Albedo;
+      matData.FresnelR0 = mat->FresnelR0;
+      matData.Roughness = mat->Roughness;
+      XMStoreFloat4x4(&matData.TransformMatrix,
+                      XMMatrixTranspose(matTransform));
+      matData.DiffuseMapIndex = mat->DiffuseSrvHeapIndex;
+      matData.NormalMapIndex = mat->NormalSrvHeapIndex;
+
+      currMaterialBuffer->CopyData(mat->MatCBIndex, matData);
+
+      mat->NumFrameDirty--;
+    }
+  }
+}
+
+void ShadowRenderer::UpdateShadowTransform(const GameTimer &timer) {}
+
+void ShadowRenderer::UpdateMainPassCB(const GameTimer &timer) {}
+
+void ShadowRenderer::UpdateShadowPassCB(const GameTimer &timer) {}
