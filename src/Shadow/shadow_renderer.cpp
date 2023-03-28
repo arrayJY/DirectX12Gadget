@@ -621,6 +621,76 @@ void ShadowRenderer::UpdateMaterialBuffer(const GameTimer &timer) {
 
 void ShadowRenderer::UpdateShadowTransform(const GameTimer &timer) {}
 
-void ShadowRenderer::UpdateMainPassCB(const GameTimer &timer) {}
+void ShadowRenderer::UpdateMainPassCB(const GameTimer &timer) {
+  XMMATRIX view = camera.GetView();
+  XMMATRIX proj = camera.GetProj();
 
-void ShadowRenderer::UpdateShadowPassCB(const GameTimer &timer) {}
+  XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+
+  auto viewDeterminant = XMMatrixDeterminant(view);
+  auto projDeterminant = XMMatrixDeterminant(proj);
+  auto viewProjDetermiant = XMMatrixDeterminant(viewProj);
+
+  auto invView = XMMatrixInverse(&viewDeterminant, view);
+  auto invProj = XMMatrixInverse(&projDeterminant, proj);
+  auto invViewProj = XMMatrixInverse(&viewProjDetermiant, viewProj);
+
+  auto shadowTransform = XMLoadFloat4x4(&ShadowTransform);
+
+  XMStoreFloat4x4(&MainPassCB.View, XMMatrixTranspose(view));
+  XMStoreFloat4x4(&MainPassCB.InvView, XMMatrixTranspose(invView));
+  XMStoreFloat4x4(&MainPassCB.Proj, XMMatrixTranspose(proj));
+  XMStoreFloat4x4(&MainPassCB.InvProj, XMMatrixTranspose(invProj));
+  XMStoreFloat4x4(&MainPassCB.ViewProj, XMMatrixTranspose(viewProj));
+  XMStoreFloat4x4(&MainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
+  XMStoreFloat4x4(&MainPassCB.ShadowTransform,
+                  XMMatrixTranspose(shadowTransform));
+  MainPassCB.EyePosW = camera.GetPosition3f();
+  MainPassCB.RenderTargetSize = XMFLOAT2((float)Width, (float)Height);
+  MainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / Width, 1.0f / Height);
+  MainPassCB.NearZ = 1.0f;
+  MainPassCB.FarZ = 1000.0f;
+  MainPassCB.TotalTime = timer.TotalTime();
+  MainPassCB.DeltaTime = timer.DeltaTime();
+  MainPassCB.Lights[0].Direction = LightDirections[0];
+  MainPassCB.Lights[0].Color = {0.9f, 0.8f, 0.7f};
+  MainPassCB.Lights[1].Direction = LightDirections[0];
+  MainPassCB.Lights[1].Color = {0.4f, 0.4f, 0.4f};
+  MainPassCB.Lights[2].Direction = LightDirections[0];
+  MainPassCB.Lights[2].Color = {0.2f, 0.2f, 0.2f};
+
+  auto CurrentPassCB = CurrentFrameResource->PassConstantsBuffer.get();
+  CurrentPassCB->CopyData(0, MainPassCB);
+}
+
+void ShadowRenderer::UpdateShadowPassCB(const GameTimer &timer) {
+  XMMATRIX view = XMLoadFloat4x4(&LightView);
+  XMMATRIX proj = XMLoadFloat4x4(&LightProj);
+
+  XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+
+  auto viewDeterminant = XMMatrixDeterminant(view);
+  auto projDeterminant = XMMatrixDeterminant(proj);
+  auto viewProjDetermiant = XMMatrixDeterminant(viewProj);
+
+  auto invView = XMMatrixInverse(&viewDeterminant, view);
+  auto invProj = XMMatrixInverse(&projDeterminant, proj);
+  auto invViewProj = XMMatrixInverse(&viewProjDetermiant, viewProj);
+
+  auto w = shadowMap->Width(), h = shadowMap->Height();
+  XMStoreFloat4x4(&ShadowPassCB.View, XMMatrixTranspose(view));
+  XMStoreFloat4x4(&ShadowPassCB.InvView, XMMatrixTranspose(invView));
+  XMStoreFloat4x4(&ShadowPassCB.Proj, XMMatrixTranspose(proj));
+  XMStoreFloat4x4(&ShadowPassCB.InvProj, XMMatrixTranspose(invProj));
+  XMStoreFloat4x4(&ShadowPassCB.ViewProj, XMMatrixTranspose(viewProj));
+  XMStoreFloat4x4(&ShadowPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
+  ShadowPassCB.EyePosW = LightPosW;
+  ShadowPassCB.RenderTargetSize = XMFLOAT2((float)w, (float)h);
+  ShadowPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / w, 1.0f / h);
+  ShadowPassCB.NearZ = LightNearZ;
+  ShadowPassCB.FarZ = LightFarZ;
+
+
+  auto CurrentPassCB = CurrentFrameResource->PassConstantsBuffer.get();
+  CurrentPassCB->CopyData(1, ShadowPassCB);
+}

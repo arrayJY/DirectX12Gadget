@@ -65,15 +65,6 @@ struct PBRMaterial {
 };
 
 
-#define MaxLights 16
-
-struct Light {
-  DirectX::XMFLOAT3 Color = {1.0f, 1.0f, 1.0f};
-  float Intensity = 0.0f;
-  DirectX::XMFLOAT3 Position = {0.0f, 0.0f, 0.0f};
-  float _padding = 0.0f;
-};
-
 struct Texture {
     std::string Name;
     std::wstring FileName;

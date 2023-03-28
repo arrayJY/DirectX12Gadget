@@ -70,6 +70,18 @@ private:
 private:
   Camera camera;
 
+  PassConstants MainPassCB;
+  PassConstants ShadowPassCB;
+
+  DirectX::XMFLOAT4X4 ShadowTransform = MathHelper::Identity4x4();
+  DirectX::XMFLOAT3 LightDirections[3];
+
+  DirectX::XMFLOAT4X4 LightView = MathHelper::Identity4x4();
+  DirectX::XMFLOAT4X4 LightProj = MathHelper::Identity4x4();
+  DirectX::XMFLOAT3 LightPosW = {0.0f, 0.0f, 0.0f};
+  float LightNearZ = 1.0f;
+  float LightFarZ = 1000.0f;
+
   ComPtr<ID3D12RootSignature> RootSignature = nullptr;
   ComPtr<ID3D12DescriptorHeap> srvDescriptorHeap = nullptr;
 
