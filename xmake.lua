@@ -25,6 +25,11 @@ target("PBR")
     add_files("src/PBR/*.cpp")
     add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/PBR/shaders"):gsub("\\", "/") .. "\"" )
 
+target("Cloth")
+    set_kind("binary")
+    add_files("src/Cloth/*.cpp")
+    add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/Cloth/shaders"):gsub("\\", "/") .. "\"" )
+
 target("Shadow")
     set_kind("binary")
     add_files("src/Shadow/*.cpp")
