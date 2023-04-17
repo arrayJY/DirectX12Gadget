@@ -4,6 +4,7 @@
 
 #include "cloth.h"
 #include "../dx_utils.h"
+#include "frame_resource.h"
 
 Cloth::Cloth(ID3D12Device* device, UINT vertexSize, DXGI_FORMAT format)
 {
@@ -21,6 +22,16 @@ void Cloth::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptor,
                              CD3DX12_GPU_DESCRIPTOR_HANDLE gpuDescriptor,
                              UINT descriptorSize)
 {
+  InputVertexCpuSrv = cpuDescriptor;
+  OutputVertexCpuUav = cpuDescriptor.Offset(1, descriptorSize);
+  InputVertexGpuSrv = gpuDescriptor;
+  OutputVertexGpuUav = gpuDescriptor.Offset(1, descriptorSize);
+
+  BuildDescriptors();
+}
+
+void Cloth::BuildDescriptors()
+{
   auto srvDesc = D3D12_SHADER_RESOURCE_VIEW_DESC{
     .Format = Format,
     .ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
@@ -28,8 +39,8 @@ void Cloth::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptor,
     .Buffer =
       D3D12_BUFFER_SRV{
         .FirstElement = 0,
-        .NumElements = (UINT)Vertices.size(),
-        .StructureByteStride = (UINT)sizeof(Vertices[0]),
+        .NumElements = (UINT)VertexSize,
+        .StructureByteStride = (UINT)sizeof(Vertex),
         .Flags = D3D12_BUFFER_SRV_FLAG_NONE,
       },
   };
@@ -39,24 +50,17 @@ void Cloth::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptor,
                                         D3D12_UAV_DIMENSION_BUFFER,
                                       .Buffer = {
                                         .FirstElement = 0,
-                                        .NumElements = (UINT)Vertices.size(),
+                                        .NumElements = VertexSize,
                                         .StructureByteStride =
-                                          (UINT)sizeof(Vertices[0]),
+                                          (UINT)sizeof(Vertex),
                                         .CounterOffsetInBytes = 0,
                                         .Flags = D3D12_BUFFER_UAV_FLAG_NONE,
                                       } };
-
   Device->CreateShaderResourceView(
-    InputVertexBuffer.Get(), &srvDesc, cpuDescriptor);
-  Device->CreateUnorderedAccessView(OutputVertexBuffer.Get(),
-                                    nullptr,
-                                    &uavDesc,
-                                    cpuDescriptor.Offset(1, descriptorSize));
-  InputVertexSrv = gpuDescriptor;
-  OutputVertexUav = gpuDescriptor.Offset(1, descriptorSize);
+    InputVertexBuffer.Get(), &srvDesc, InputVertexCpuSrv);
+  Device->CreateUnorderedAccessView(
+    OutputVertexBuffer.Get(), nullptr, &uavDesc, OutputVertexCpuUav);
 }
-
-void Cloth::OnResize(UINT newWidth, UINT newHeight) {}
 
 void Cloth::Execute(ID3D12GraphicsCommandList* cmdList,
                     ID3D12RootSignature* rootSig,
@@ -87,8 +91,8 @@ void Cloth::Execute(ID3D12GraphicsCommandList* cmdList,
   cmdList->ResourceBarrier(1, &barrier);
 
   cmdList->SetPipelineState(pso);
-  cmdList->SetComputeRootDescriptorTable(0, InputVertexSrv);
-  cmdList->SetComputeRootDescriptorTable(1, OutputVertexUav);
+  cmdList->SetComputeRootDescriptorTable(0, InputVertexGpuSrv);
+  cmdList->SetComputeRootDescriptorTable(1, OutputVertexGpuUav);
 
   UINT GroupSize = (UINT)ceilf(vertexCount / 64.0f);
   cmdList->Dispatch(GroupSize, 1, 1);
@@ -99,7 +103,7 @@ void Cloth::BuildResources()
   auto bufferDesc =
     D3D12_RESOURCE_DESC{ .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
                          .Alignment = 0,
-                         .Width = (UINT)Vertices.size() * sizeof(Vertices[0]),
+                         .Width = VertexSize * (UINT)sizeof(Vertex),
                          .Height = 1,
                          .DepthOrArraySize = 1,
                          .MipLevels = 1,

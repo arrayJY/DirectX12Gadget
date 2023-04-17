@@ -6,12 +6,6 @@
 
 #include "../stdafx.h"
 
-struct Vertex
-{
-  DirectX::XMFLOAT3 Pos;
-  DirectX::XMFLOAT3 Normal;
-};
-
 class Cloth
 {
 public:
@@ -23,7 +17,8 @@ public:
   void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptor,
                         CD3DX12_GPU_DESCRIPTOR_HANDLE gpuDescriptor,
                         UINT descriptorSize);
-  void OnResize(UINT newWidth, UINT newHeight);
+  void BuildDescriptors();
+  void BuildResources();
 
   void Execute(ID3D12GraphicsCommandList* cmdList,
                ID3D12RootSignature* rootSig,
@@ -32,14 +27,14 @@ public:
                UINT vertexCount);
 
 private:
-  void BuildResources();
-  std::vector<Vertex> Vertices;
   UINT VertexSize;
   DXGI_FORMAT Format;
 
   ComPtr<ID3D12Device> Device;
-  CD3DX12_GPU_DESCRIPTOR_HANDLE InputVertexSrv;
-  CD3DX12_GPU_DESCRIPTOR_HANDLE OutputVertexUav;
+  CD3DX12_CPU_DESCRIPTOR_HANDLE InputVertexCpuSrv;
+  CD3DX12_CPU_DESCRIPTOR_HANDLE OutputVertexCpuUav;
+  CD3DX12_GPU_DESCRIPTOR_HANDLE InputVertexGpuSrv;
+  CD3DX12_GPU_DESCRIPTOR_HANDLE OutputVertexGpuUav;
 
   ComPtr<ID3D12Resource> InputVertexBuffer = nullptr;
   ComPtr<ID3D12Resource> InputVertexUploadBuffer = nullptr;
