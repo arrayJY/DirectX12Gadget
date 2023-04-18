@@ -12,14 +12,12 @@ struct VertexInput {
 };
 
 struct Vertex {
-  XMFLOAT3 position;
-  XMFLOAT3 normal;
+  XMFLOAT3 Pos;
+  XMFLOAT3 Normal;
 };
 
 struct ObjectConstants {
   DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
-  DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
-  int MaterialIndex = -1;
 };
 
 struct PassConstants {
@@ -40,8 +38,7 @@ struct PassConstants {
 
 class FrameResource {
 public:
-  FrameResource(ID3D12Device *device, UINT passCount, UINT objectCount,
-                UINT materialCount);
+  FrameResource(ID3D12Device *device, UINT passCount, UINT objectCount);
   FrameResource(const FrameResource &) = delete;
   FrameResource &operator=(const FrameResource &) = delete;
 

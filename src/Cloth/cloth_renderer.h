@@ -6,31 +6,44 @@
 
 #include "../renderer.h"
 #include "../stdafx.h"
+#include "cloth.h"
 #include "frame_resource.h"
+#include "render_item.h"
 
-class ClothRenderer : public Renderer {
+
+class ClothRenderer : public Renderer
+{
 public:
-  void InitDirectX(const InitInfo &initInfo) override;
+  void InitDirectX(const InitInfo& initInfo) override;
   void OnResize(UINT width, UINT height) override;
-  void Update(const GameTimer &timer) override;
-  void Draw(const GameTimer &timer) override;
+  void Update(const GameTimer& timer) override;
+  void Draw(const GameTimer& timer) override;
 
 protected:
-  void CreateBuffers();
+  void LoadCloth();
   void CreateRootSignature();
+  void CreateClothRootSignature();
+  void CreateDescriptorHeaps();
+  void CreateRenderItems();
+  void CreateFrameResources();
   void CreateShadersAndInputLayout();
   void CreatePSOs();
 
-  void DoCompute();
+  std::vector<Vertex> Vertecies;
+  std::unique_ptr<Cloth> ClothSimulator;
+
+  std::vector<std::unique_ptr<FrameResource>> FrameResources;
+  FrameResource* CurrentFrameResource = nullptr;
+  std::vector<std::unique_ptr<RenderItem>> AllRenderItems;
 
   ComPtr<ID3D12RootSignature> RootSignature = nullptr;
-  ComPtr<ID3D12DescriptorHeap> SrvDescriptorHeap = nullptr;
-  ComPtr<ID3D12Resource> VertexInputUploadBuffer = nullptr;
-  ComPtr<ID3D12Resource> VertexInputBuffer = nullptr;
-  ComPtr<ID3D12Resource> VertexOutputBuffer = nullptr;
+  ComPtr<ID3D12RootSignature> ClothRootSignature = nullptr;
 
-  std::vector<Vertex> Vertecies;
+  ComPtr<ID3D12DescriptorHeap> SrvUavCbvHeap = nullptr;
 
   std::unordered_map<std::string, ComPtr<ID3DBlob>> Shaders;
+  std::vector<D3D12_INPUT_ELEMENT_DESC> InputLayouts;
+
   std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> PSOs;
+
 };

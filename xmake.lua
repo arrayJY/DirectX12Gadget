@@ -2,7 +2,7 @@ set_project("DirectX12Gadget")
 set_languages("c++20")
 
 add_rules("mode.debug", "mode.release")
-add_requires("glfw", "directxtk")
+add_requires("glfw", "directxtk", "tinyobjloader")
 
 add_repositories("my-repo myrepo")
 add_requires("directxtk12")
@@ -13,27 +13,28 @@ end
 
 add_files("src/*.cpp")
 add_syslinks("d3d12", "dxgi", "d3dcompiler")
-add_packages("glfw", "directxtk12")
+add_packages("glfw", "directxtk12", "tinyobjloader")
 
 target("Box")
     set_kind("binary")
     add_files("src/Box/*.cpp")
-    add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/Box/shaders"):gsub("\\", "/") .. "\"" )
+    add_defines("SHADER_DIR=L\"" .. path.join(os.projectdir(), "src/Box/shaders"):gsub("\\", "/") .. "\"" )
 
 target("PBR")
     set_kind("binary")
     add_files("src/PBR/*.cpp")
-    add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/PBR/shaders"):gsub("\\", "/") .. "\"" )
+    add_defines("SHADER_DIR=L\"" .. path.join(os.projectdir(), "src/PBR/shaders"):gsub("\\", "/") .. "\"" )
 
 target("Cloth")
     set_kind("binary")
     add_files("src/Cloth/*.cpp")
-    add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/Cloth/shaders"):gsub("\\", "/") .. "\"" )
+    add_defines("SHADER_DIR=L\"" .. path.join(os.projectdir(), "src/Cloth/shaders"):gsub("\\", "/") .. "\"" )
+    add_defines("MODEL_DIR=\"" .. path.join(os.projectdir(), "src/Cloth/models"):gsub("\\", "/") .. "\"" )
 
 target("Shadow")
     set_kind("binary")
     add_files("src/Shadow/*.cpp")
-    add_defines("SHADER_DIR=\"" .. path.join(os.projectdir(), "src/Shadow/shaders"):gsub("\\", "/") .. "\"" )
+    add_defines("SHADER_DIR=L\"" .. path.join(os.projectdir(), "src/Shadow/shaders"):gsub("\\", "/") .. "\"" )
     add_defines("TEXTURE_DIR=L\"" .. path.join(os.projectdir(), "src/Shadow/textures"):gsub("\\", "/") .. "\"" )
 
 --
